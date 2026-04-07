@@ -118,7 +118,8 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'indigo-plateau-ecf0c';
+    // 무작위 폴더 생성을 막기 위해 __app_id 검사를 제거하고 고정된 프로젝트 ID를 사용합니다.
+    const appId = 'indigo-plateau-ecf0c';
 
     // -- 상수 데이터 --
     const DEPARTMENTS = ["인사팀", "경영지원팀", "트레이너팀", "배틀지원팀", "이사회", "재무팀", "안전관리팀", "기술연구팀", "홍보팀", "시설관리팀"];
