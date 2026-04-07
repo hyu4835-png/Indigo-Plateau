@@ -211,11 +211,11 @@
       );
     };
 
-    const BattleBoard = () => (
+    const BattleBoard = ({ setCurrentPage }) => (
       <div className="bg-white rounded-none border border-gray-100 shadow-sm p-6 mb-5 font-sans">
         <div className="flex justify-between items-center mb-5">
           <h3 className="font-black text-[13px] text-gray-800 uppercase tracking-tighter">진행 중인 배틀</h3>
-          <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 animate-pulse"><PlayCircle size={12} /> LIVE STADIUM</div>
+          <button onClick={() => setCurrentPage('stadium')} className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 animate-pulse hover:text-emerald-700 transition-colors cursor-pointer"><PlayCircle size={12} /> LIVE STADIUM</button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[600px]">
@@ -644,6 +644,7 @@
                {currentPage === 'tasks' && <TasksView tasks={tasks} taskFilter={taskFilter} setTaskFilter={setTaskFilter} openTaskModal={(mode, t) => { setModalMode(mode); setFormState(t || { id: null, title: '', status: '대기', types: ['내 업무'], department: '', priority: '보통' }); setIsTaskModalOpen(true); }} />}
                {currentPage === 'messenger' && <MessengerView user={user} publicUsers={publicUsers} myChats={myChats} allMessages={allMessages} activeChatId={activeChatId} setActiveChatId={setActiveChatId} chatInputEmail={chatInputEmail} setChatInputEmail={setChatInputEmail} handleCreateChat={handleCreateChat} chatMessageInput={chatMessageInput} setChatMessageInput={setChatMessageInput} handleSendMessage={handleSendMessage} />}
                {currentPage === 'conduct' && <ConductView setCurrentPage={setCurrentPage} />}
+               {currentPage === 'stadium' && <LiveStadiumView setCurrentPage={setCurrentPage} />}
 
                {currentPage === 'notices' && (
                   <div className="space-y-4 font-sans text-left animate-in fade-in duration-500"><h3 className="text-xl font-black text-emerald-950 uppercase">전체 공지사항</h3>
@@ -1057,7 +1058,7 @@
             </div>
           </section>
         </div>
-        <BattleBoard />
+        <BattleBoard setCurrentPage={setCurrentPage} />
         <div className="grid grid-cols-12 gap-5 items-stretch text-left font-sans font-bold">
           <div className="col-span-12 md:col-span-8 flex flex-col gap-5">
             <BannerSlider />
@@ -1172,7 +1173,6 @@
                                    </div>
                                 )}
                                 <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} max-w-[70%]`}>
-                                   {!isMine && showProfile && <span className="text-[10px] font-bold text-gray-500 mb-1 ml-1">{partner.name} {partner.position}</span>}
                                    <div className="flex items-end gap-2">
                                       {isMine && <span className="text-[8px] font-bold text-gray-400 mb-1 flex-shrink-0">{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>}
                                       <div className={`px-4 py-2.5 rounded-2xl text-[12px] font-medium shadow-sm whitespace-pre-wrap ${isMine ? 'bg-emerald-500 text-white rounded-br-none' : 'bg-white border border-gray-100 text-gray-800 rounded-bl-none'}`}>
@@ -1288,6 +1288,46 @@
                    </li>
                 </ul>
              </section>
+          </div>
+        </div>
+      );
+    };
+
+    const LiveStadiumView = ({ setCurrentPage }) => {
+      const videos = [
+        { id: 1, url: "https://i.ibb.co/237hrV73/1774956407068.jpg", title: "도전자vs소우 FULL LIVE", time: "LIVE", views: "1.2만명 시청 중" },
+        { id: 2, url: "https://i.ibb.co/NgYrq693/1774956407275.jpg", title: "vs마론 하이라이트" }
+      ];
+
+      return (
+        <div className="animate-in fade-in duration-500 space-y-6 text-left font-sans">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+               <h3 className="text-xl font-black text-emerald-950 uppercase tracking-tight">라이브 스타디움</h3>
+               <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5 tracking-widest">Live Stadium Gallery</p>
+            </div>
+            <button onClick={() => setCurrentPage('home')} className="text-xs font-bold text-gray-400 hover:text-emerald-600 flex items-center gap-1"><ChevronLeft size={14}/> 홈으로</button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {videos.map(v => (
+              <div key={v.id} className="flex flex-col group cursor-pointer">
+                <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden bg-gray-100 mb-3 shadow-sm border border-gray-200">
+                  <img src={v.url} alt={v.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-300"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-14 h-14 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-red-600 shadow-lg transform group-hover:scale-110 transition-transform duration-300">
+                       <PlayCircle size={32} className="text-red-600" />
+                    </div>
+                  </div>
+                  <div className="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-widest flex items-center gap-1.5 shadow-sm">
+                    <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> {v.time}
+                  </div>
+                </div>
+                <h4 className="font-black text-[14px] text-gray-900 group-hover:text-emerald-600 transition-colors line-clamp-2">{v.title}</h4>
+                <p className="text-[11px] text-gray-500 font-bold mt-1">{v.views}</p>
+              </div>
+            ))}
           </div>
         </div>
       );
