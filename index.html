@@ -329,6 +329,7 @@
       const [userApplications, setUserApplications] = useState([]);
       const [leagueEntry, setLeagueEntry] = useState([...INITIAL_ENTRY]);
       const [formState, setFormState] = useState({ id: null, title: '', status: '대기', types: ['내 업무'], department: '', priority: '보통' });
+      const [packageRequestTitle, setPackageRequestTitle] = useState(''); // 버그 수정을 위한 비품 신청 전용 상태 추가
 
       const [confirmModal, setConfirmModal] = useState({ isOpen: false, day: null, type: null });
       const [pkmnForm, setPkmnForm] = useState({ name: '', status: '회복 중' });
@@ -818,14 +819,14 @@
                           {Object.entries(ITEM_LIST).map(([cat, items]) => (
                              <div key={cat}><h4 className="text-[11px] font-black text-emerald-600 mb-4 uppercase tracking-widest border-l-4 border-emerald-500 pl-2 font-bold">{cat}</h4>
                                 <div className="flex flex-wrap gap-2 font-bold">{items.map(item => {
-                                   const isSelected = formState.title.includes(item);
+                                   const isSelected = packageRequestTitle.includes(item);
                                    return (<button key={item} onClick={() => {
-                                      const titles = formState.title ? formState.title.split(', ') : [];
+                                      const titles = packageRequestTitle ? packageRequestTitle.split(', ') : [];
                                       let nextTitles;
                                       if(titles.includes(item)) nextTitles = titles.filter(t => t !== item);
                                       else if(titles.length < 3) nextTitles = [...titles, item];
                                       else return;
-                                      setFormState({...formState, title: nextTitles.join(', ')});
+                                      setPackageRequestTitle(nextTitles.join(', '));
                                    }} className={`px-3 py-2 text-[11px] font-bold border rounded-lg transition-all ${isSelected ? 'bg-emerald-500 border-emerald-500 text-white shadow-md' : 'bg-white border-gray-100 text-gray-500 hover:border-emerald-200'}`}>{item}</button>);
                                 })}</div>
                              </div>
@@ -834,13 +835,13 @@
                        <div className="md:col-span-4 bg-gray-50/50 p-8 flex flex-col justify-between font-bold">
                           <div className="space-y-6">
                             <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest ml-1">신청 목록 (최대 3개)</label>
-                            <div className="space-y-2 min-h-[100px] font-bold">{formState.title.split(', ').filter(x=>x).map((item, idx) => (<div key={idx} className="flex items-center justify-between bg-white px-3 py-2 rounded-lg border border-emerald-100 text-[11px] font-bold text-emerald-700 animate-in slide-in-from-left-2"><span>{item}</span><X size={14} className="text-gray-300 hover:text-red-500 cursor-pointer" onClick={() => { const titles = formState.title.split(', ').filter(t => t !== item); setFormState({...formState, title: titles.join(', ')}); }}/></div>))}{!formState.title && <p className="text-[10px] text-gray-300 italic pt-2">아이템을 선택하세요.</p>}</div>
+                            <div className="space-y-2 min-h-[100px] font-bold">{packageRequestTitle.split(', ').filter(x=>x).map((item, idx) => (<div key={idx} className="flex items-center justify-between bg-white px-3 py-2 rounded-lg border border-emerald-100 text-[11px] font-bold text-emerald-700 animate-in slide-in-from-left-2"><span>{item}</span><X size={14} className="text-gray-300 hover:text-red-500 cursor-pointer" onClick={() => { const titles = packageRequestTitle.split(', ').filter(t => t !== item); setPackageRequestTitle(titles.join(', ')); }}/></div>))}{!packageRequestTitle && <p className="text-[10px] text-gray-300 italic pt-2">아이템을 선택하세요.</p>}</div>
                           </div>
                           <button onClick={async () => {
-                             if(!formState.title) return;
-                             const newApp = { id: Date.now(), category: '비품', title: formState.title, date: new Date().toISOString().split('T')[0], status: '처리중' };
+                             if(!packageRequestTitle) return;
+                             const newApp = { id: Date.now(), category: '비품', title: packageRequestTitle, date: new Date().toISOString().split('T')[0], status: '처리중' };
                              const nextApps = [newApp, ...userApplications];
-                             setUserApplications(nextApps); await saveUserData({ userApplications: nextApps }); setFormState({...formState, title: ''}); setCurrentPage('home');
+                             setUserApplications(nextApps); await saveUserData({ userApplications: nextApps }); setPackageRequestTitle(''); setCurrentPage('home');
                           }} className="w-full py-4 bg-gray-900 text-white rounded-xl text-[11px] font-black uppercase shadow-lg active:scale-95 transition-all">비품 신청하기</button>
                        </div>
                      </div>
