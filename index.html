@@ -730,18 +730,23 @@
                           <h4 className="font-black text-gray-800 text-xs uppercase tracking-widest mb-1">사용 배틀 기믹 등록</h4>
                           <p className="text-[10px] text-gray-400 font-bold">공식전에서 사용할 배틀 기믹을 선택하세요. (복수 선택 가능)</p>
                        </div>
-                       <div className="flex flex-wrap gap-4 font-bold">
+                       <div className="flex flex-wrap gap-3 font-bold">
                           {[
-                            { id: 'mega', label: '메가진화' },
-                            { id: 'zmove', label: 'Z기술' },
-                            { id: 'dmax', label: '다이맥스' },
-                            { id: 'tera', label: '테라스탈' }
+                            { id: 'mega', label: '메가진화', img: 'https://i.namu.wiki/i/I_KVeeqB8WohA0uFA90qaPEsWu4hs8CCPzSejs_aUyMxJEc35dbpgLy5hioC822CLf8EGzC_D_WuiVK8KOSmMQ.webp' },
+                            { id: 'zmove', label: 'Z기술', img: 'https://i.namu.wiki/i/mYQmsdVUMqrhzWudNWC0TpQVhW99WS2BRkCCOe0PvrS0RizEMr2dG620j0q8oZTwymN6G-p_f3-gxB9KjW6zPPdJucBWJqyYItuNXgHmScgKnaEMC_NWWQ7i-qP7FM4orpByTMCwYYhVNBIYTStAZA.webp' },
+                            { id: 'dmax', label: '다이맥스', img: 'https://i.namu.wiki/i/Xk7Z7rABZ4GFn4oz8tXMYA7XMiI-ydo15rNdKd7vabLGfECAyxwZ4mklpku-Zi-YKL8Sg2AAjHP3Ts_rPGcwyTrD4nT2Rf9fPtrSVZxWVExPcbQQ0gsX_tI4GC_mlue7N5Oaw7z_4nTbEOc8ZmhmBA.webp' },
+                            { id: 'tera', label: '테라스탈', img: 'https://i.namu.wiki/i/xJN8YQogE5ysS4lTMTLOVkfX40kIb5Y2s9zB_eaRUZi06tBGSSOKFP2l5GN3y6zu73oaygJwvjpP7CkqVen7NXnrTPjwEoErFsF63XM_Jta1KWgKMXMu8Tv_6_KVnNn-lL1MzG_3nS-JdPqi4tOgAQ.webp' }
                           ].map(g => (
-                            <label key={g.id} className="flex items-center gap-2 cursor-pointer group" onClick={(e) => { e.preventDefault(); setBattleGimmicks({...battleGimmicks, [g.id]: !battleGimmicks[g.id]}); }}>
-                               <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${battleGimmicks[g.id] ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-gray-50 border-gray-300 text-transparent group-hover:border-emerald-400'}`}>
-                                  <Check size={14} />
+                            <label key={g.id} className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 cursor-pointer group transition-all min-w-[80px] ${battleGimmicks[g.id] ? 'bg-emerald-50 border-emerald-500 shadow-sm' : 'bg-white border-gray-100 hover:border-emerald-200'}`} onClick={(e) => { e.preventDefault(); setBattleGimmicks({...battleGimmicks, [g.id]: !battleGimmicks[g.id]}); }}>
+                               <div className="w-10 h-10 flex items-center justify-center relative">
+                                  <img src={g.img} alt={g.label} className={`max-w-full max-h-full object-contain transition-transform duration-300 ${battleGimmicks[g.id] ? 'scale-110 drop-shadow-md' : 'grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100'}`} />
                                </div>
-                               <span className="text-[11px] text-gray-700 select-none">{g.label}</span>
+                               <div className="flex items-center gap-1.5">
+                                  <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-colors ${battleGimmicks[g.id] ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-gray-100 border-gray-300 text-transparent'}`}>
+                                     <Check size={10} strokeWidth={4} />
+                                  </div>
+                                  <span className={`text-[10px] select-none tracking-tight ${battleGimmicks[g.id] ? 'text-emerald-700' : 'text-gray-500'}`}>{g.label}</span>
+                               </div>
                             </label>
                           ))}
                        </div>
