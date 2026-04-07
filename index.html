@@ -321,10 +321,10 @@
       const [toast, setToast] = useState({ show: false, message: '' });
       const [notificationCount, setNotificationCount] = useState(0);
 
-      const [notices] = useState([
-        { id: 1, category: '행사', author: '운영본부', title: '제98회 석영리그 챔피언십 본선 일정 안내', date: '2024-05-20', content: '제98회 챔피언십 본선 일정이 확정되었습니다.', isNew: true },
-        { id: 2, category: '기술', author: '안전관리팀', title: '[중요] 경기장 내 야생 포켓몬 출몰 주의보', date: '2024-05-18', content: '최근 경기장 외곽 제3구역에서 야생 뿔카노 무리가 자주 출몰하고 있습니다.', isNew: true },
-        { id: 3, category: '인사', author: '인사지원팀', title: '2분기 복지 포인트 지급 완료 안내', date: '2024-05-15', content: '금일 2분기 복지 포인트 지급이 완료되었습니다.', isNew: false },
+           const [notices] = useState([
+        { id: 1, category: '행사', author: '운영본부', title: '하나리그 연계 신입 트레이너 연수 일정 안내', date: '2024-05-20', content: '안녕하십니까, 석영리그 본부 인사팀입니다. 제 28회 하나리그 연계 신입 트레이너 연수 일정에 관해 안내드리니, 3월 입사한 신입 트레이너 여러분들은 모두 참가할 수 있도록 각 팀에서 전달 바랍니다.\n일시: 4월 7일(화)\n장소: 하나지방 리버풀시티 체육관 및, 하나리그 본관', isNew: true },
+        { id: 2, category: '기술', author: '안전관리팀', title: '[중요] 경기장 내 야생 포켓몬 출몰 주의보', date: '2024-05-18', content: '최근 경기장 외곽 제3구역에서 야생 노라키 무리가 자주 출몰하고 있습니다. 트레이너 및 임직원 여러분께서는 사고가 없도록 해당 위치 방문 시 파트너 포켓몬을 동행하시거나, 삐삐인형을 소지하시길 바랍니다. 각 팀의 삐삐인형이 소진된 경우 비품 신청으로 신청 바랍니다.', isNew: true },
+        { id: 3, category: '업무', author: '트레이너팀', title: '신오지방 출장 근무 예정 안내', date: '2024-05-15', content: '신오지방 축제 관련하여 출장 근무가 예정되어 있습니다. 자세한 업무 내용은 각 팀으로 전달된 기술서 확인 바라며, 해당 기간에는 가급적 휴가 신청을 자제하여 주시기 바랍니다. 감사합니다.', isNew: false },
       ]);
 
       // -- 명시적 데이터 저장 로직 (버튼을 누를 때만 선택적으로 저장되도록 최적화) --
