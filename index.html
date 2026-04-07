@@ -157,10 +157,12 @@
       { time: "10:00", date: "2024-06-02", player1: "도전자", player2: "소우", score: "0 : 0", stadium: "챔피언\n배틀코트", status: "예정" }
     ];
     
+    // 생년월일, 비상연락망 추가 반영
     const INITIAL_PROFILE = {
       name: '신입 사원', englishName: 'New Recruit', dept: '미지정', position: '인턴',
       location: '석영고원 본부 1층', staffId: '', joinDate: new Date().toISOString().split('T')[0],
-      email: '', phone: '', status: '재직(수습)', profileImage: null, extension: '0000'
+      email: '', phone: '', status: '재직(수습)', profileImage: null, extension: '0000',
+      birthDate: '2000-01-01', emergencyContact: '010-0000-0000'
     };
 
     const INITIAL_ENTRY = Array(6).fill(0).map((_, i) => ({
@@ -179,7 +181,7 @@
     const EditInput = ({ label, value, onChange }) => (
       <div className="text-left">
         <label className="block text-[9px] font-black text-gray-400 mb-1.5 uppercase tracking-widest ml-1">{label}</label>
-        <input type="text" className="w-full px-4 py-3 text-xs bg-gray-50 border-none rounded-xl outline-none font-black shadow-inner" value={value} onChange={(e) => onChange(e.target.value)} />
+        <input type="text" className="w-full px-4 py-3 text-xs bg-gray-50 border-none rounded-xl outline-none font-black shadow-inner" value={value || ''} onChange={(e) => onChange(e.target.value)} />
       </div>
     );
 
@@ -249,7 +251,7 @@
       </div>
     );
 
-    const Footer = () => (
+    const Footer = ({ setCurrentPage }) => (
       <footer className="bg-white border-t border-gray-100 py-12 px-8 mt-10">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10">
           <div className="space-y-4">
@@ -278,7 +280,7 @@
             <div className="flex flex-col gap-2 text-[11px] text-gray-500">
               <button className="text-left hover:text-emerald-600">개인정보 처리방침</button>
               <button className="text-left hover:text-emerald-600">리그 규정 및 배틀 규칙</button>
-              <button className="text-left hover:text-emerald-600">스태프 행동 지침</button>
+              <button onClick={() => setCurrentPage('conduct')} className="text-left hover:text-emerald-600">스태프 행동 지침</button>
             </div>
           </div>
         </div>
@@ -314,6 +316,12 @@
       const [chatInputEmail, setChatInputEmail] = useState('');
       const [chatMessageInput, setChatMessageInput] = useState('');
 
+      // --- 예약 캘린더/배틀 기믹 추가 상태 ---
+      const [battleGimmicks, setBattleGimmicks] = useState({ mega: false, zmove: false, dmax: false, tera: false });
+      const [calendarDate, setCalendarDate] = useState(new Date());
+      const [selectedCenterDate, setSelectedCenterDate] = useState(null);
+      const [depositSelection, setDepositSelection] = useState([false, false, false, false, false, false]);
+
       // -- 데이터 상태 --
       const [userProfile, setUserProfile] = useState({ ...INITIAL_PROFILE });
       const [profileForm, setProfileForm] = useState({ ...INITIAL_PROFILE });
@@ -329,19 +337,19 @@
       const [toast, setToast] = useState({ show: false, message: '' });
       const [notificationCount, setNotificationCount] = useState(0);
 
-           const [notices] = useState([
+      const [notices] = useState([
         { id: 1, category: '행사', author: '운영본부', title: '하나리그 연계 신입 트레이너 연수 일정 안내', date: '2024-05-20', content: '안녕하십니까, 석영리그 본부 인사팀입니다. 제 28회 하나리그 연계 신입 트레이너 연수 일정에 관해 안내드리니, 3월 입사한 신입 트레이너 여러분들은 모두 참가할 수 있도록 각 팀에서 전달 바랍니다.\n일시: 4월 7일(화)\n장소: 하나지방 리버풀시티 체육관 및, 하나리그 본관', isNew: true },
         { id: 2, category: '기술', author: '안전관리팀', title: '[중요] 경기장 내 야생 포켓몬 출몰 주의보', date: '2024-05-18', content: '최근 경기장 외곽 제3구역에서 야생 노라키 무리가 자주 출몰하고 있습니다. 트레이너 및 임직원 여러분께서는 사고가 없도록 해당 위치 방문 시 파트너 포켓몬을 동행하시거나, 삐삐인형을 소지하시길 바랍니다. 각 팀의 삐삐인형이 소진된 경우 비품 신청으로 신청 바랍니다.', isNew: true },
         { id: 3, category: '업무', author: '트레이너팀', title: '신오지방 출장 근무 예정 안내', date: '2024-05-15', content: '신오지방 축제 관련하여 출장 근무가 예정되어 있습니다. 자세한 업무 내용은 각 팀으로 전달된 기술서 확인 바라며, 해당 기간에는 가급적 휴가 신청을 자제하여 주시기 바랍니다. 감사합니다.', isNew: false },
       ]);
 
-      // -- 명시적 데이터 저장 로직 (버튼을 누를 때만 선택적으로 저장되도록 최적화) --
+      // -- 명시적 데이터 저장 로직 --
       const saveUserData = async (updates = {}) => {
         if (!user) return;
         const dataDoc = doc(db, 'artifacts', appId, 'users', user.uid, 'userData', 'main');
         try {
           await setDoc(dataDoc, updates, { merge: true });
-          // 프로필 업데이트 시 공개 디렉토리(Public Directory)에도 동기화
+          // 프로필 업데이트 시 공개 디렉토리에도 동기화
           if (updates.userProfile) {
             const publicUserDoc = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
             await setDoc(publicUserDoc, {
@@ -372,7 +380,7 @@
             setUser(u);
             setIsLoggedIn(true);
           } else {
-            // 로그아웃 시 모든 데이터 초기화 (다른 아이디 간섭 방지)
+            // 로그아웃 시 모든 데이터 초기화
             setUser(null);
             setIsLoggedIn(false);
             setUserProfile({ ...INITIAL_PROFILE });
@@ -380,6 +388,7 @@
             setTasks([]);
             setUserApplications([]);
             setLeagueEntry([...INITIAL_ENTRY]);
+            setBattleGimmicks({ mega: false, zmove: false, dmax: false, tera: false });
             setPkmnList([]);
           }
           setIsAuthInitialized(true);
@@ -387,7 +396,7 @@
         return () => unsubscribe();
       }, []);
 
-      // -- 데이터 불러오기 (실시간 동기화로 인한 타이핑 덮어쓰기를 막기 위해 로그인 시 한 번만 로드) --
+      // -- 데이터 불러오기 --
       useEffect(() => {
         if (!user) return;
         const fetchData = async () => {
@@ -397,14 +406,16 @@
             if (snapshot.exists()) {
               const data = snapshot.data();
               if (data.userProfile) {
-                setUserProfile(data.userProfile);
-                setProfileForm(data.userProfile); 
-                // 로그인 시 공개 디렉토리에 정보 갱신 보장
-                setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid), { ...data.userProfile, uid: user.uid }, { merge: true });
+                // 이전 데이터에 생년월일 등이 없을 경우를 대비하여 병합
+                const loadedProfile = { ...INITIAL_PROFILE, ...data.userProfile };
+                setUserProfile(loadedProfile);
+                setProfileForm(loadedProfile); 
+                setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid), { ...loadedProfile, uid: user.uid }, { merge: true });
               }
               if (data.tasks) setTasks(data.tasks);
               if (data.userApplications) setUserApplications(data.userApplications);
               if (data.leagueEntry) setLeagueEntry(data.leagueEntry);
+              if (data.battleGimmicks) setBattleGimmicks(data.battleGimmicks);
               if (data.pkmnList) setPkmnList(data.pkmnList);
             }
           } catch(err) { console.error("Load error:", err); }
@@ -429,6 +440,43 @@
 
         return () => { usersUnsub(); chatsUnsub(); msgsUnsub(); };
       }, [user]);
+
+      // --- 안 읽은 메신저 알림 배지 및 토스트 감지 로직 ---
+      const prevMsgCount = useRef(0);
+      useEffect(() => {
+          if (!user) {
+              prevMsgCount.current = 0;
+              return;
+          }
+          if (allMessages.length === 0) return;
+          
+          if (prevMsgCount.current === 0) {
+              prevMsgCount.current = allMessages.length;
+              return;
+          }
+
+          if (allMessages.length > prevMsgCount.current) {
+              const sortedMsgs = [...allMessages].sort((a,b) => a.timestamp - b.timestamp);
+              const newMsgs = sortedMsgs.slice(prevMsgCount.current);
+              
+              newMsgs.forEach(msg => {
+                  if (msg.senderId !== user.uid) {
+                      // 내가 참여한 채팅방인지 확인
+                      const isMyChat = allChats.some(c => c.id === msg.roomId && c.participants.includes(user.uid));
+                      if (isMyChat) {
+                          // 현재 메신저 창을 보고 있지 않거나, 다른 대화방을 보고 있을 때 알림
+                          if (currentPage !== 'messenger' || activeChatId !== msg.roomId) {
+                              const sender = publicUsers.find(u => u.uid === msg.senderId);
+                              setToast({ show: true, message: `[메신저] ${sender?.name || '알 수 없음'}: ${msg.text}` });
+                              setNotificationCount(prev => prev + 1);
+                          }
+                      }
+                  }
+              });
+              prevMsgCount.current = allMessages.length;
+          }
+      }, [allMessages, user, allChats, publicUsers, currentPage, activeChatId]);
+
 
       // --- 메신저 로직 ---
       const handleCreateChat = async () => {
@@ -482,7 +530,7 @@
           const pending = userApplications.filter(a => a.status === '처리중');
           if (pending.length === 0) return;
           const target = pending[Math.floor(Math.random() * pending.length)];
-          setToast({ show: true, message: `[HQ 알림] ${target.title} 처리가 완료되었습니다.` });
+          setToast({ show: true, message: `[HQ 시스템] ${target.title} 처리가 완료되었습니다.` });
           setNotificationCount(c => c + 1);
           const nextApps = userApplications.map(a => a.id === target.id ? { ...a, status: '완료' } : a);
           setUserApplications(nextApps);
@@ -514,6 +562,7 @@
               tasks: [{ id: Date.now(), title: '본부 시스템 가이드 숙지', status: '진행중', types: ['내 업무'], priority: '보통' }],
               userApplications: [],
               leagueEntry: [...INITIAL_ENTRY],
+              battleGimmicks: { mega: false, zmove: false, dmax: false, tera: false },
               pkmnList: []
             };
             await setDoc(doc(db, 'artifacts', appId, 'users', newUser.uid, 'userData', 'main'), initialData);
@@ -532,7 +581,6 @@
 
       const logout = async () => {
         await signOut(auth);
-        // 상태 초기화는 onAuthStateChanged 리스너에서 통합 처리됨
         setCurrentPage('home'); 
         setNotificationCount(0);
       };
@@ -595,7 +643,8 @@
                {currentPage === 'profile' && <ProfileView userProfile={userProfile} setIsProfileModalOpen={setIsProfileModalOpen} userApplications={userApplications} leagueEntry={leagueEntry} />}
                {currentPage === 'tasks' && <TasksView tasks={tasks} taskFilter={taskFilter} setTaskFilter={setTaskFilter} openTaskModal={(mode, t) => { setModalMode(mode); setFormState(t || { id: null, title: '', status: '대기', types: ['내 업무'], department: '', priority: '보통' }); setIsTaskModalOpen(true); }} />}
                {currentPage === 'messenger' && <MessengerView user={user} publicUsers={publicUsers} myChats={myChats} allMessages={allMessages} activeChatId={activeChatId} setActiveChatId={setActiveChatId} chatInputEmail={chatInputEmail} setChatInputEmail={setChatInputEmail} handleCreateChat={handleCreateChat} chatMessageInput={chatMessageInput} setChatMessageInput={setChatMessageInput} handleSendMessage={handleSendMessage} />}
-               
+               {currentPage === 'conduct' && <ConductView setCurrentPage={setCurrentPage} />}
+
                {currentPage === 'notices' && (
                   <div className="space-y-4 font-sans text-left animate-in fade-in duration-500"><h3 className="text-xl font-black text-emerald-950 uppercase">전체 공지사항</h3>
                     <div className="bg-white border border-gray-200 shadow-sm rounded-xl overflow-hidden divide-y divide-gray-100">
@@ -614,7 +663,7 @@
                       </div>
                       <div className="flex items-center gap-4">
                         <button onClick={async () => {
-                           await saveUserData({ leagueEntry });
+                           await saveUserData({ leagueEntry, battleGimmicks });
                            setToast({ show: true, message: "엔트리 정보가 데이터베이스에 저장되었습니다." });
                         }} className="px-4 py-2.5 bg-emerald-600 text-white text-[11px] font-black uppercase tracking-widest shadow-lg flex items-center gap-1.5 rounded-lg hover:bg-emerald-700 active:scale-95 transition-all"><Check size={14}/> 엔트리 저장</button>
                         <button onClick={() => setCurrentPage('home')} className="text-xs font-bold text-gray-400 hover:text-emerald-600 flex items-center gap-1"><ChevronLeft size={14}/> 홈으로</button>
@@ -645,52 +694,120 @@
                         </div>
                       ))}
                     </div>
-                  </div>
-               )}
-
-               {currentPage === 'center' && (
-                  <div className="max-w-5xl mx-auto animate-in fade-in duration-500 space-y-6 text-left font-sans relative font-bold">
-                    <div className="flex justify-between items-center mb-2 font-bold"><div><h3 className="text-xl font-black text-emerald-950 uppercase tracking-tight">사내 포켓몬센터 예약</h3><p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5 tracking-widest">Pokemon Center Service</p></div><button onClick={() => setCurrentPage('home')} className="text-xs font-bold text-gray-400 hover:text-emerald-600 flex items-center gap-1 font-bold"><ChevronLeft size={14}/> 홈으로</button></div>
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                      <div className="md:col-span-7 bg-white border border-gray-200 shadow-sm rounded-xl p-6 font-bold">
-                        <div className="flex justify-between items-center mb-5 font-bold"><h4 className="font-black text-gray-800 text-xs">2024년 6월 예약 현황</h4></div>
-                        <div className="grid grid-cols-7 gap-1.5 font-bold">
-                          {["일", "월", "화", "수", "목", "금", "토"].map(d => <div key={d} className="text-center text-[9px] font-black text-gray-300 py-1 uppercase">{d}</div>)}
-                          {Array.from({ length: 30 }).map((_, i) => {
-                            const day = i + 1;
-                            const dateStr = `2024-06-${day.toString().padStart(2, '0')}`;
-                            const hasMyReservation = userApplications.some(a => a.category === '센터' && a.date === dateStr);
-                            return (
-                              <button key={i} onClick={() => { setConfirmModal({isOpen:true, day, type: hasMyReservation ? 'CANCEL' : 'RESERVE'}); }} className={`aspect-square rounded-lg border flex flex-col items-center justify-center transition-all ${hasMyReservation ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-inner font-bold' : 'bg-gray-50 border-gray-100 text-gray-400 hover:bg-white hover:border-emerald-200 font-bold'}`}>
-                                <span className="text-[11px] font-bold">{day}</span>
-                                {hasMyReservation && <div className="w-1.5 h-1.5 bg-emerald-600 rounded-full mt-0.5 font-bold"></div>}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      <div className="md:col-span-5 bg-white border border-gray-200 shadow-sm rounded-xl p-6 flex flex-col font-bold">
-                        <div className="flex items-center gap-2 mb-6 border-b border-gray-50 pb-4"><Stethoscope size={16} className="text-red-500" /><h4 className="font-black text-gray-800 text-xs">맡긴 포켓몬 현황</h4></div>
-                        <div className="mb-4 p-3 bg-gray-50 rounded-lg space-y-2 font-bold">
-                          <input type="text" placeholder="이름" className="w-full px-3 py-1.5 text-[10px] border border-gray-200 rounded-md font-bold" value={pkmnForm.name} onChange={e => setPkmnForm({...pkmnForm, name: e.target.value})} />
-                          <div className="flex gap-2">
-                            <select className="flex-1 px-2 py-1.5 text-[10px] border border-gray-200 rounded-md font-bold outline-none" value={pkmnForm.status} onChange={e => setPkmnForm({...pkmnForm, status: e.target.value})}><option>회복 중</option><option>회복 완료</option></select>
-                            <button onClick={() => { if(!pkmnForm.name) return; const next = [...pkmnList, {...pkmnForm, id: Date.now()}]; setPkmnList(next); saveUserData({ pkmnList: next }); setPkmnForm({name:'', status:'회복 중'}); }} className="bg-emerald-600 text-white p-1.5 rounded-md active:scale-90 font-bold"><Plus size={14}/></button>
-                          </div>
-                        </div>
-                        <div className="flex-1 space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                          {pkmnList.map(pkmn => (
-                            <div key={pkmn.id} className="p-3 bg-gray-50 rounded-lg border border-gray-100 flex items-center gap-3 group transition-all font-bold">
-                              <div className={`w-2 h-2 rounded-full ${pkmn.status === "회복 완료" ? "bg-emerald-400 animate-pulse font-bold" : "bg-orange-400 font-bold"}`}></div>
-                              <div className="flex-1 font-bold"><p className="text-[10px] text-gray-800">{pkmn.name}</p><p className="text-[8px] text-gray-400">{pkmn.status}</p></div>
-                              <button onClick={() => { const next = pkmnList.filter(p => p.id !== pkmn.id); setPkmnList(next); saveUserData({ pkmnList: next }); }} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-opacity"><Trash2 size={12}/></button>
-                            </div>
+                    
+                    <div className="mt-6 bg-white border border-gray-200 shadow-xl rounded-xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                       <div>
+                          <h4 className="font-black text-gray-800 text-xs uppercase tracking-widest mb-1">사용 배틀 기믹 등록</h4>
+                          <p className="text-[10px] text-gray-400 font-bold">공식전에서 사용할 배틀 기믹을 선택하세요. (복수 선택 가능)</p>
+                       </div>
+                       <div className="flex flex-wrap gap-4 font-bold">
+                          {[
+                            { id: 'mega', label: '메가진화' },
+                            { id: 'zmove', label: 'Z기술' },
+                            { id: 'dmax', label: '다이맥스' },
+                            { id: 'tera', label: '테라스탈' }
+                          ].map(g => (
+                            <label key={g.id} className="flex items-center gap-2 cursor-pointer group" onClick={(e) => { e.preventDefault(); setBattleGimmicks({...battleGimmicks, [g.id]: !battleGimmicks[g.id]}); }}>
+                               <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${battleGimmicks[g.id] ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-gray-50 border-gray-300 text-transparent group-hover:border-emerald-400'}`}>
+                                  <Check size={14} />
+                               </div>
+                               <span className="text-[11px] text-gray-700 select-none">{g.label}</span>
+                            </label>
                           ))}
-                        </div>
-                      </div>
+                       </div>
                     </div>
                   </div>
                )}
+
+               {currentPage === 'center' && (() => {
+                  const cYear = calendarDate.getFullYear();
+                  const cMonth = calendarDate.getMonth();
+                  const daysInMonth = new Date(cYear, cMonth + 1, 0).getDate();
+                  const firstDay = new Date(cYear, cMonth, 1).getDay();
+                  const prevMonth = () => setCalendarDate(new Date(cYear, cMonth - 1, 1));
+                  const nextMonth = () => setCalendarDate(new Date(cYear, cMonth + 1, 1));
+
+                  return (
+                     <div className="max-w-5xl mx-auto animate-in fade-in duration-500 space-y-6 text-left font-sans relative font-bold">
+                       <div className="flex justify-between items-center mb-2 font-bold"><div><h3 className="text-xl font-black text-emerald-950 uppercase tracking-tight">사내 포켓몬센터 예약</h3><p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5 tracking-widest">Pokemon Center Service</p></div><button onClick={() => setCurrentPage('home')} className="text-xs font-bold text-gray-400 hover:text-emerald-600 flex items-center gap-1 font-bold"><ChevronLeft size={14}/> 홈으로</button></div>
+                       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                         
+                         {/* Calendar Section */}
+                         <div className="lg:col-span-5 bg-white border border-gray-200 shadow-sm rounded-xl p-6 font-bold flex flex-col">
+                           <div className="flex justify-between items-center mb-5 font-bold">
+                              <h4 className="font-black text-gray-800 text-xs flex items-center gap-2">
+                                 <button onClick={prevMonth} className="p-1 hover:bg-gray-100 rounded text-gray-500"><ChevronLeft size={14}/></button>
+                                 {cYear}년 {cMonth + 1}월
+                                 <button onClick={nextMonth} className="p-1 hover:bg-gray-100 rounded text-gray-500"><ChevronRight size={14}/></button>
+                              </h4>
+                              {selectedCenterDate && <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded">선택됨: {selectedCenterDate}</span>}
+                           </div>
+                           <div className="grid grid-cols-7 gap-1.5 font-bold flex-1">
+                             {["일", "월", "화", "수", "목", "금", "토"].map(d => <div key={d} className="text-center text-[9px] font-black text-gray-300 py-1 uppercase">{d}</div>)}
+                             {Array(firstDay).fill(null).map((_, i) => <div key={`empty-${i}`} />)}
+                             {Array.from({ length: daysInMonth }).map((_, i) => {
+                               const day = i + 1;
+                               const dateStr = `${cYear}-${String(cMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                               const hasMyReservation = userApplications.some(a => a.category === '센터' && a.date === dateStr);
+                               const isSelected = selectedCenterDate === dateStr;
+                               return (
+                                 <button key={i} onClick={() => setSelectedCenterDate(dateStr)} className={`aspect-square rounded-lg border flex flex-col items-center justify-center transition-all ${isSelected ? 'ring-2 ring-emerald-500 border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm' : hasMyReservation ? 'bg-emerald-50/50 border-emerald-200 text-emerald-600 shadow-inner' : 'bg-gray-50 border-gray-100 text-gray-400 hover:bg-white hover:border-emerald-200'} font-bold`}>
+                                   <span className="text-[11px] font-bold">{day}</span>
+                                   {hasMyReservation && <div className="w-1.5 h-1.5 bg-emerald-600 rounded-full mt-0.5 font-bold"></div>}
+                                 </button>
+                               );
+                             })}
+                           </div>
+                         </div>
+                         
+                         {/* Deposited Pokemon Status Section (연동된 엔트리 예약) */}
+                         <div className="lg:col-span-7 bg-white border border-gray-200 shadow-sm rounded-xl p-6 flex flex-col font-bold">
+                           <div className="flex items-center gap-2 mb-6 border-b border-gray-50 pb-4"><Stethoscope size={16} className="text-red-500" /><h4 className="font-black text-gray-800 text-xs">엔트리 기반 예약 관리</h4></div>
+                           
+                           <div className="grid grid-cols-6 gap-2 mb-6 flex-1 min-w-0">
+                              {leagueEntry.map((pkmn, idx) => {
+                                 const isSelected = depositSelection[idx];
+                                 return (
+                                    <div key={idx} className="flex flex-col items-center gap-2 min-w-0">
+                                       <div className={`w-full aspect-square rounded-lg border transition-all relative overflow-hidden flex items-center justify-center cursor-pointer ${isSelected ? 'border-emerald-500 ring-2 ring-emerald-500 shadow-md' : 'border-gray-200 hover:border-emerald-300'}`} style={{ backgroundColor: TYPE_COLORS[pkmn.type1] || '#f9fafb' }} onClick={() => { const next = [...depositSelection]; next[idx] = !next[idx]; setDepositSelection(next); }}>
+                                          <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px]"></div>
+                                          {pkmn.image ? <img src={pkmn.image} className="w-full h-full object-contain relative z-10 p-1" /> : <div className="text-black/30 text-[10px] font-black relative z-10 text-center leading-tight">{pkmn.name || '?'}</div>}
+                                       </div>
+                                       <div className="text-center w-full px-1">
+                                          <p className="text-[9px] font-black text-gray-800 truncate">{pkmn.name || '미등록'}</p>
+                                          <div className="mt-1 flex items-center justify-center">
+                                             <label className="flex items-center gap-1 cursor-pointer group" onClick={(e) => { e.preventDefault(); const next = [...depositSelection]; next[idx] = !next[idx]; setDepositSelection(next); }}>
+                                                <div className={`w-3 h-3 rounded-[3px] border flex items-center justify-center transition-colors ${isSelected ? 'bg-emerald-500 border-emerald-500 text-white flex-shrink-0' : 'bg-gray-100 border-gray-300 text-transparent group-hover:border-emerald-400 flex-shrink-0'}`}><Check size={8} strokeWidth={4} /></div>
+                                                <span className="text-[8px] font-bold text-gray-500 truncate hidden sm:inline">맡기기</span>
+                                             </label>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 );
+                              })}
+                           </div>
+                           
+                           <button onClick={async () => {
+                              if (!selectedCenterDate) { setToast({show:true, message:'예약할 날짜를 달력에서 먼저 선택해주세요.'}); return; }
+                              const selectedNames = leagueEntry.filter((p, i) => depositSelection[i]).map(p => p.name || '미등록').join(', ');
+                              if (!selectedNames) { setToast({show:true, message:'맡길 포켓몬을 하나 이상 선택해주세요.'}); return; }
+                              
+                              const newApp = { id: Date.now(), category: '센터', title: `포켓몬 치료 예약 (${selectedNames})`, date: selectedCenterDate, status: '처리중' };
+                              const nextApps = [newApp, ...userApplications];
+                              setUserApplications(nextApps);
+                              await saveUserData({ userApplications: nextApps });
+                              setDepositSelection([false,false,false,false,false,false]);
+                              setSelectedCenterDate(null);
+                              setToast({show:true, message:'포켓몬 센터 예약이 완료되었습니다.'});
+                              setCurrentPage('home');
+                           }} className={`w-full py-3 rounded-xl text-[11px] font-black uppercase shadow-lg transition-all ${selectedCenterDate && depositSelection.some(Boolean) ? 'bg-emerald-600 text-white active:scale-95 hover:bg-emerald-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
+                              선택 항목 예약 완료
+                           </button>
+                         </div>
+                       </div>
+                     </div>
+                  );
+               })()}
 
                {currentPage === 'package' && (
                   <div className="max-w-4xl mx-auto animate-in fade-in duration-500 space-y-6 text-left font-sans font-bold">
@@ -731,7 +848,7 @@
 
                {currentPage === 'cert' && <CertView userProfile={userProfile} setCurrentPage={setCurrentPage} />}
             </main>
-            <Footer />
+            <Footer setCurrentPage={setCurrentPage} />
           </div>
 
           <Modals 
@@ -821,14 +938,18 @@
               <h3 className="font-black text-emerald-900 text-sm uppercase tracking-widest mb-6 text-center">인사 정보 수정</h3>
               <div className="flex-1 overflow-y-auto space-y-6 text-left scrollbar-hide px-2 font-bold">
                 <div className="flex justify-center mb-6"><div className="w-24 h-24 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden cursor-pointer hover:border-emerald-500 transition-colors" onClick={() => document.getElementById('p-up').click()}>{profileForm.profileImage ? <img src={profileForm.profileImage} className="w-full h-full object-cover" /> : <Camera size={24} className="text-gray-300"/>}</div><input id="p-up" type="file" className="hidden" accept="image/*" onChange={e => { const f = e.target.files[0]; if(f){ const r = new FileReader(); r.onloadend = () => setProfileForm({...profileForm, profileImage: r.result}); r.readAsDataURL(f); } }} /></div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <EditInput label="이름" value={profileForm.name} onChange={(v) => setProfileForm({...profileForm, name: v})} />
+                  <EditInput label="영문명" value={profileForm.englishName} onChange={(v) => setProfileForm({...profileForm, englishName: v})} />
+                  <EditInput label="생년월일" value={profileForm.birthDate} onChange={(v) => setProfileForm({...profileForm, birthDate: v})} />
                   <EditInput label="소속 부서" value={profileForm.dept} onChange={(v) => setProfileForm({...profileForm, dept: v})} />
                   <EditInput label="직급" value={profileForm.position} onChange={(v) => setProfileForm({...profileForm, position: v})} />
                   <EditInput label="근무 위치" value={profileForm.location} onChange={(v) => setProfileForm({...profileForm, location: v})} />
                   <EditInput label="이메일" value={profileForm.email} onChange={(v) => setProfileForm({...profileForm, email: v})} />
-                  <EditInput label="휴대폰" value={profileForm.phone} onChange={(v) => setProfileForm({...profileForm, phone: v})} />
+                  <EditInput label="비상연락망" value={profileForm.emergencyContact} onChange={(v) => setProfileForm({...profileForm, emergencyContact: v})} />
                 </div>
+
               </div>
               <div className="pt-8 flex gap-3 font-bold"><button onClick={() => setIsProfileModalOpen(false)} className="flex-1 py-4 text-gray-400 font-black text-[11px] uppercase tracking-widest">취소</button><button onClick={async () => { setUserProfile(profileForm); await saveUserData({ userProfile: profileForm }); setIsProfileModalOpen(false); setToast({ show: true, message: "인사 정보 업데이트 완료" }); }} className="flex-1 py-4 bg-emerald-600 text-white rounded-xl font-black text-[11px] uppercase active:scale-95 shadow-lg">저장</button></div>
             </div>
@@ -910,7 +1031,7 @@
             
             <div className="mt-5 pt-5 border-t border-gray-100 flex-1 flex flex-col">
               <div className="flex justify-between items-center mb-3">
-                <h3 className="font-black text-[11px] text-gray-800 uppercase tracking-tighter">최근 도착한 메신저</h3>
+                <h3 className="font-black text-[11px] text-gray-800 uppercase tracking-tighter">최근 메신저</h3>
                 <button onClick={() => setCurrentPage('messenger')} className="text-[9px] font-bold text-emerald-600 hover:text-emerald-700">전체보기</button>
               </div>
               <div className="space-y-2 flex-1">
@@ -927,7 +1048,7 @@
                                <span className="text-[11px] font-black text-gray-800 truncate pr-2">{partner?.name || '알 수 없음'} {partner?.position}</span>
                                <span className="text-[8px] text-gray-400 font-bold flex-shrink-0">{new Date(chat.lastMessageTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                             </div>
-                            <p className="text-[10px] text-gray-500 truncate font-bold">{chat.lastMessage || '새로운 대화방입니다.'}</p>
+                            <p className="text-[10px] text-gray-500 truncate font-medium">{chat.lastMessage || '새로운 대화방입니다.'}</p>
                          </div>
                       </div>
                    )
@@ -979,10 +1100,14 @@
       const partner = publicUsers.find(u => u.uid === partnerId);
       
       const chatMessages = allMessages.filter(m => m.roomId === activeChatId).sort((a,b) => a.timestamp - b.timestamp);
-      const messagesEndRef = useRef(null);
+      
+      // 자동 스크롤 버그 수정: 특정 컨테이너 내부만 스크롤 되도록 변경 (scrollIntoView 대체)
+      const chatContainerRef = useRef(null);
 
       useEffect(() => {
-         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+         if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+         }
       }, [chatMessages]);
 
       return (
@@ -1011,7 +1136,7 @@
                                 <span className="text-[11px] font-black text-gray-900 truncate pr-2">{pUser?.name || '알 수 없음'}</span>
                                 <span className={`text-[8px] font-bold ${isActive ? 'text-emerald-500' : 'text-gray-400'}`}>{new Date(chat.lastMessageTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                              </div>
-                             <p className={`text-[10px] font-bold truncate ${isActive ? 'text-emerald-700' : 'text-gray-500'}`}>{chat.lastMessage || '새로운 대화방입니다.'}</p>
+                             <p className={`text-[10px] font-medium truncate ${isActive ? 'text-emerald-700' : 'text-gray-500'}`}>{chat.lastMessage || '새로운 대화방입니다.'}</p>
                           </div>
                        </div>
                     );
@@ -1035,7 +1160,7 @@
                        </div>
                     </div>
                     {/* Messages */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50">
+                    <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50">
                        {chatMessages.map((msg, i) => {
                           const isMine = msg.senderId === user.uid;
                           const showProfile = !isMine && (i === 0 || chatMessages[i-1].senderId !== msg.senderId);
@@ -1050,7 +1175,7 @@
                                    {!isMine && showProfile && <span className="text-[10px] font-bold text-gray-500 mb-1 ml-1">{partner.name} {partner.position}</span>}
                                    <div className="flex items-end gap-2">
                                       {isMine && <span className="text-[8px] font-bold text-gray-400 mb-1 flex-shrink-0">{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>}
-                                      <div className={`px-4 py-2.5 rounded-2xl text-[12px] font-bold shadow-sm whitespace-pre-wrap ${isMine ? 'bg-emerald-500 text-white rounded-br-none' : 'bg-white border border-gray-100 text-gray-800 rounded-bl-none'}`}>
+                                      <div className={`px-4 py-2.5 rounded-2xl text-[12px] font-medium shadow-sm whitespace-pre-wrap ${isMine ? 'bg-emerald-500 text-white rounded-br-none' : 'bg-white border border-gray-100 text-gray-800 rounded-bl-none'}`}>
                                          {msg.text}
                                       </div>
                                       {!isMine && <span className="text-[8px] font-bold text-gray-400 mb-1 flex-shrink-0">{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>}
@@ -1059,7 +1184,6 @@
                              </div>
                           );
                        })}
-                       <div ref={messagesEndRef} />
                     </div>
                     {/* Input */}
                     <form onSubmit={handleSendMessage} className="p-4 bg-white border-t border-gray-100">
@@ -1076,6 +1200,95 @@
                  </div>
               )}
            </div>
+        </div>
+      );
+    };
+
+    const ConductView = ({ setCurrentPage }) => {
+      const scrollRef = useRef(null);
+
+      useEffect(() => {
+        window.scrollTo(0, 0);
+        if (scrollRef.current) scrollRef.current.scrollTop = 0;
+      }, []);
+
+      return (
+        <div className="animate-in fade-in duration-500 space-y-6 text-left font-sans">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+               <h3 className="text-xl font-black text-emerald-950 uppercase tracking-tight">스태프 행동 지침</h3>
+               <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5 tracking-widest">Code of Conduct</p>
+            </div>
+            <button onClick={() => setCurrentPage('home')} className="text-xs font-bold text-gray-400 hover:text-emerald-600 flex items-center gap-1"><ChevronLeft size={14}/> 홈으로</button>
+          </div>
+          <div ref={scrollRef} className="bg-white border border-gray-200 shadow-sm rounded-xl p-8 md:p-12 text-sm text-gray-700 leading-relaxed font-medium space-y-10 max-h-[70vh] overflow-y-auto">
+             
+             <div className="text-center pb-8 border-b border-gray-100">
+               <h2 className="text-2xl font-black text-gray-900 mb-2">석영고원 리그 본부 스태프 행동 지침</h2>
+               <p className="text-[11px] text-gray-400 uppercase tracking-widest">최종 개정일 : 2024년 6월 1일</p>
+             </div>
+
+             <section>
+                <ul className="space-y-4">
+                   <li>
+                      <p className="font-bold text-gray-900">1.1. 유사 시 상황에 대비해 파트너 포켓몬(1마리 이상)을 항상 대동할 것.</p>
+                      <ul className="pl-5 mt-2 space-y-2 text-[12.5px] text-gray-600 list-disc list-outside marker:text-emerald-400">
+                         <li><span className="font-bold text-gray-700">1.1.1.</span> 파트너 포켓몬을 대동하지 않은 상태에서 입은 피해는 리그 측에서 보상하지 않으나, 예외의 사항에 한해 보상 가능.</li>
+                         <li><span className="font-bold text-gray-700">1.1.2.</span> 여기서 예외의 사항이란 파트너 포켓몬이 1마리인 상황에서 배틀 불능 상태인 경우 혹은 비전투 파트너일 경우, 트레이너 본인이 배틀 불능에 준하는 상태(신체・정신적인 손상 등)일 경우에 한한다.</li>
+                      </ul>
+                   </li>
+                </ul>
+             </section>
+
+             <section>
+                <ul className="space-y-4">
+                   <li>
+                      <p className="font-bold text-gray-900">1.2. 상위 트레이너는 하위 트레이너의 배틀 신청을 거절하지 않을 것.</p>
+                      <ul className="pl-5 mt-2 space-y-2 text-[12.5px] text-gray-600 list-disc list-outside marker:text-emerald-400">
+                         <li><span className="font-bold text-gray-700">1.2.1.</span> 상위 트레이너의 기준은 챔피언, 사천왕, 엘리트 트레이너, 일반 트레이너 순서를 기준으로 하며, 해당 범위 내에 자신의 직책이 존재하지 않을 경우 일반 트레이너로 대우함.</li>
+                      </ul>
+                   </li>
+                </ul>
+             </section>
+
+             <section>
+                <ul className="space-y-4">
+                   <li>
+                      <p className="font-bold text-gray-900">1.3. 사무실 및 업무 공간에서의 유해 행위를 자제할 것.</p>
+                      <ul className="pl-5 mt-2 space-y-2 text-[12.5px] text-gray-600 list-disc list-outside marker:text-emerald-400">
+                         <li><span className="font-bold text-gray-700">1.3.1.</span> 여기서 유해 행위의 기준은 관동・성도법에 의거함.</li>
+                         <li><span className="font-bold text-gray-700">1.3.2.</span> 유해 행위로 지속적인 민원과 신고가 접수될 경우, 해당 대상을 감봉 및 정직 처리함.</li>
+                         <li><span className="font-bold text-gray-700">1.3.3.</span> 단, 챔피언 혹은 사천왕과 같이 리그 운영에 있어서 대체할 수 없는 직위의 인물일 경우 예외를 둔다.</li>
+                      </ul>
+                   </li>
+                </ul>
+             </section>
+
+             <section>
+                <ul className="space-y-4">
+                   <li>
+                      <p className="font-bold text-gray-900">1.4. 비상연락망을 2인 이상 등록할 것.</p>
+                      <ul className="pl-5 mt-2 space-y-2 text-[12.5px] text-gray-600 list-disc list-outside marker:text-emerald-400">
+                         <li><span className="font-bold text-gray-700">1.4.1.</span> 비상연락망에 등록된 인물이 1인일 경우, 유사 시 연락이 불가능한 상황이 발생할 수 있음을 주의.</li>
+                         <li><span className="font-bold text-gray-700">1.4.2.</span> 비상연락망은 가족으로 제한하지 아니한다.</li>
+                      </ul>
+                   </li>
+                </ul>
+             </section>
+
+             <section>
+                <ul className="space-y-4">
+                   <li>
+                      <p className="font-bold text-gray-900">1.5. 리그 운영 규칙에 해당되는 사유로 리그에서 은퇴를 선언할 경우, 석영리그 인트라넷의 사번은 반납한다.</p>
+                      <ul className="pl-5 mt-2 space-y-2 text-[12.5px] text-gray-600 list-disc list-outside marker:text-emerald-400">
+                         <li><span className="font-bold text-gray-700">1.5.1.</span> 단, 석영리그에서 공인한 체육관직으로 리그와의 연계를 이어갈 경우 사번을 유지할 수 있다.</li>
+                         <li><span className="font-bold text-gray-700">1.5.2.</span> 위의 규칙은 관장 및 체육관 트레이너, 일반 스태프까지 적용된다.</li>
+                         <li><span className="font-bold text-gray-700">1.5.3.</span> 물 아저씨는 적용되지 않는다.</li>
+                      </ul>
+                   </li>
+                </ul>
+             </section>
+          </div>
         </div>
       );
     };
@@ -1140,12 +1353,13 @@
             <div className="md:col-span-8 bg-white border border-gray-200 shadow-sm rounded-xl overflow-hidden font-bold">
                <div className="px-8 py-6 border-b border-gray-50 flex items-center gap-2"><ShieldCheck size={18} className="text-emerald-500" /><h4 className="font-black text-gray-800 text-xs uppercase tracking-widest">상세 근무 정보</h4></div>
                <div className="grid grid-cols-1 sm:grid-cols-2 border-b border-gray-50 font-bold">
-                  <TableItem label="사원 식별자" value={userProfile.staffId} />
-                  <TableItem label="재직 상태" value={userProfile.status} />
-                  <TableItem label="입사 일자" value={userProfile.joinDate} />
-                  <TableItem label="근무 위치" value={userProfile.location} />
-                  <TableItem label="이메일" value={userProfile.email} />
-                  <TableItem label="휴대폰" value={userProfile.phone} />
+                  {/* 변경된 상세 정보 항목 */}
+                  <TableItem label="영문명" value={userProfile.englishName || '-'} />
+                  <TableItem label="재직 상태" value={userProfile.status || '-'} />
+                  <TableItem label="생년월일" value={userProfile.birthDate || '-'} />
+                  <TableItem label="근무 위치" value={userProfile.location || '-'} />
+                  <TableItem label="이메일" value={userProfile.email || '-'} />
+                  <TableItem label="비상연락망" value={userProfile.emergencyContact || '-'} />
                </div>
                <div className="p-8 bg-gray-50/30">
                   <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Clock size={12}/> 최근 신청 상태 요약</h5>
