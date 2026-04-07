@@ -137,7 +137,7 @@
     const TYPE_COLORS = {
       '선택': '#10b981', '노말': '#949495', '격투': '#E09C40', '비행': '#A2C3E7', '독': '#A33EA1',
       '땅': '#E2BF65', '바위': '#B6A136', '벌레': '#A6B91A', '고스트': '#735797', '강철': '#69A9C7',
-      '불꽃': '#EE8130', '물': '#6390F0', '풀': '#7AC74C', '전기': '#F7D02C', '에스퍼': '#F95587',
+      '불꽃': '#EE8130', '물': '#5185C5', '풀': '#7AC74C', '전기': '#F7D02C', '에스퍼': '#F95587',
       '얼음': '#96D9D6', '드래곤': '#6F35FC', '악': '#705746', '페어리': '#D685AD', '없음': '#CBD5E1'
     };
 
@@ -163,7 +163,7 @@
     const INITIAL_PROFILE = {
       name: '신입 사원', englishName: 'New Recruit', dept: '미지정', position: '인턴',
       location: '석영고원 본부 1층', staffId: '', joinDate: new Date().toISOString().split('T')[0],
-      email: '', phone: '', status: '재직(수습)', profileImage: null, extension: '0000',
+      email: '', phone: '', status: '재직', profileImage: null, extension: '0000',
       birthDate: '2000-01-01', emergencyContact: '010-0000-0000'
     };
 
@@ -783,7 +783,7 @@
                     <div className="mt-6 bg-white border border-gray-200 shadow-xl rounded-xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                        <div>
                           <h4 className="font-black text-gray-800 text-xs uppercase tracking-widest mb-1">사용 배틀 기믹 등록</h4>
-                          <p className="text-[10px] text-gray-400 font-bold">공식전에서 사용할 배틀 기믹을 선택하세요. (복수 선택 가능)</p>
+                          <p className="text-[10px] text-gray-400 font-bold">공식전에서 사용할 배틀 기믹을 선택하세요.</p>
                        </div>
                        <div className="flex flex-wrap gap-3 font-bold">
                           {[
