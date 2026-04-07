@@ -329,7 +329,7 @@
       // -- 데이터 저장 로직 --
       const saveUserData = async (updates = {}) => {
         if (!user) return;
-        const dataDoc = doc(db, 'artifacts', appId, 'public', 'data', 'userStates', user.uid);
+        const dataDoc = doc(db, 'artifacts', appId, 'users', user.uid, 'userData', 'main');
         try {
           const currentData = { userProfile, tasks, userApplications, leagueEntry, pkmnList };
           await setDoc(dataDoc, { ...currentData, ...updates }, { merge: true });
@@ -370,7 +370,7 @@
       // -- 실시간 데이터 동기화 --
       useEffect(() => {
         if (!user) return;
-        const dataDoc = doc(db, 'artifacts', appId, 'public', 'data', 'userStates', user.uid);
+        const dataDoc = doc(db, 'artifacts', appId, 'users', user.uid, 'userData', 'main');
         const unsub = onSnapshot(dataDoc, (snapshot) => {
           if (snapshot.exists()) {
             const data = snapshot.data();
@@ -429,7 +429,7 @@
               leagueEntry: [...INITIAL_ENTRY],
               pkmnList: []
             };
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'userStates', newUser.uid), initialData);
+            await setDoc(doc(db, 'artifacts', appId, 'users', newUser.uid, 'userData', 'main'), initialData);
           } else {
             await signInWithEmailAndPassword(auth, email, password);
           }
