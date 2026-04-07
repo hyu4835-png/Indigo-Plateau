@@ -118,7 +118,7 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    // 무작위 폴더 생성을 막기 위해 __app_id 검사를 제거하고 고정된 프로젝트 ID를 사용합니다.
+    // 무작위 경로 생성을 방지하기 위해 단일 프로젝트 ID로 고정 (초기화 문제 해결의 핵심)
     const appId = 'indigo-plateau-ecf0c';
 
     // -- 상수 데이터 --
@@ -133,14 +133,14 @@
     ];
 
     const TYPE_COLORS = {
-      '선택': '#10b981', '노말': '#949495', '격투': '#E09C40', '비행': '#A2C3E7', '독': '#A33EA1',
-      '땅': '#E2BF65', '바위': '#B6A136', '벌레': '#A6B91A', '고스트': '#735797', '강철': '#69A9C7',
+      '선택': '#10b981', '노말': '#A8A77A', '격투': '#C22E28', '비행': '#A98FF3', '독': '#A33EA1',
+      '땅': '#E2BF65', '바위': '#B6A136', '벌레': '#A6B91A', '고스트': '#735797', '강철': '#B7B7CE',
       '불꽃': '#EE8130', '물': '#6390F0', '풀': '#7AC74C', '전기': '#F7D02C', '에스퍼': '#F95587',
       '얼음': '#96D9D6', '드래곤': '#6F35FC', '악': '#705746', '페어리': '#D685AD', '없음': '#CBD5E1'
     };
 
     const BANNERS = [
-      { id: 1, title: "제98회 석영리그 공인 체육관 명단 확정", subtitle: "난이도 조절 관련 간담회 예정", color: "bg-emerald-600" },
+      { id: 1, title: "제98회 석영 챔피언십 배틀 일정 공개", subtitle: "운영지원팀 사전 대진표 추첨 완료", color: "bg-emerald-600" },
       { id: 2, title: "신입 트레이너 스태프 교육 연수", subtitle: "실무 역량 강화를 위한 집중 코스 안내", color: "bg-indigo-600" },
       { id: 3, title: "전 구역 포켓몬센터 정기 점검", subtitle: "이용 시 불편함이 없도록 일정 확인 바랍니다", color: "bg-red-600" }
     ];
@@ -152,9 +152,9 @@
     };
 
     const BATTLE_LOGS = [
-      { time: "14:00", date: "2024-06-01", player1: "도전자", player2: "칸나", score: "6 : 5", stadium: "석영리그\n제 3 배틀코트", status: "종료" },
-      { time: "16:30", date: "2024-06-01", player1: "도전자", player2: "마론", score: "2 : 1", stadium: "석영리그\n제 4 경배틀코트", status: "진행 중" },
-      { time: "10:00", date: "2024-06-02", player1: "도전자", player2: "소우", score: "0 : 0", stadium: "챔피언\n배틀코트", status: "예정" }
+      { time: "14:00", date: "2024-06-01", player1: "지우", player2: "바람", score: "6 : 5", stadium: "석영 경기장", status: "종료" },
+      { time: "16:30", date: "2024-06-01", player1: "목호", player2: "난천", score: "2 : 1", stadium: "챔피언 로드", status: "진행 중" },
+      { time: "10:00", date: "2024-06-02", player1: "레드", player2: "그린", score: "0 : 0", stadium: "은빛산 정격", status: "진행 중" }
     ];
 
     const INITIAL_PROFILE = {
@@ -322,18 +322,17 @@
       const [notificationCount, setNotificationCount] = useState(0);
 
       const [notices] = useState([
-        { id: 1, category: '행사', author: '운영본부', title: '하나리그 연계 신입 트레이너 연수 일정 안내', date: '2024-05-20', content: '안녕하십니까, 석영리그 본부 인사팀입니다. 제 28회 하나리그 연계 신입 트레이너 연수 일정에 관해 안내드리니, 3월 입사한 신입 트레이너 여러분들은 모두 참가할 수 있도록 각 팀에서 전달 바랍니다.\n일시: 4월 7일(화)\n장소: 하나지방 리버풀시티 체육관 및, 하나리그 본관', isNew: true },
-        { id: 2, category: '기술', author: '안전관리팀', title: '[중요] 경기장 내 야생 포켓몬 출몰 주의보', date: '2024-05-18', content: '최근 경기장 외곽 제3구역에서 야생 노라키 무리가 자주 출몰하고 있습니다. 트레이너 및 임직원 여러분께서는 사고가 없도록 해당 위치 방문 시 파트너 포켓몬을 동행하시거나, 삐삐인형을 소지하시길 바랍니다. 각 팀의 삐삐인형이 소진된 경우 비품 신청으로 신청 바랍니다.', isNew: true },
-        { id: 3, category: '업무', author: '트레이너팀', title: '신오지방 출장 근무 예정 안내', date: '2024-05-15', content: '신오지방 축제 관련하여 출장 근무가 예정되어 있습니다. 자세한 업무 내용은 각 팀으로 전달된 기술서 확인 바라며, 해당 기간에는 가급적 휴가 신청을 자제하여 주시기 바랍니다. 감사합니다.', isNew: false },
+        { id: 1, category: '행사', author: '운영본부', title: '제98회 석영리그 챔피언십 본선 일정 안내', date: '2024-05-20', content: '제98회 챔피언십 본선 일정이 확정되었습니다.', isNew: true },
+        { id: 2, category: '기술', author: '안전관리팀', title: '[중요] 경기장 내 야생 포켓몬 출몰 주의보', date: '2024-05-18', content: '최근 경기장 외곽 제3구역에서 야생 뿔카노 무리가 자주 출몰하고 있습니다.', isNew: true },
+        { id: 3, category: '인사', author: '인사지원팀', title: '2분기 복지 포인트 지급 완료 안내', date: '2024-05-15', content: '금일 2분기 복지 포인트 지급이 완료되었습니다.', isNew: false },
       ]);
 
-      // -- 데이터 저장 로직 --
+      // -- 명시적 데이터 저장 로직 (버튼을 누를 때만 선택적으로 저장되도록 최적화) --
       const saveUserData = async (updates = {}) => {
         if (!user) return;
         const dataDoc = doc(db, 'artifacts', appId, 'users', user.uid, 'userData', 'main');
         try {
-          const currentData = { userProfile, tasks, userApplications, leagueEntry, pkmnList };
-          await setDoc(dataDoc, { ...currentData, ...updates }, { merge: true });
+          await setDoc(dataDoc, updates, { merge: true });
         } catch (e) { console.error("Save error:", e); }
       };
 
@@ -368,25 +367,27 @@
         return () => unsubscribe();
       }, []);
 
-      // -- 실시간 데이터 동기화 --
+      // -- 데이터 불러오기 (실시간 동기화로 인한 타이핑 덮어쓰기를 막기 위해 로그인 시 한 번만 로드) --
       useEffect(() => {
         if (!user) return;
-        const dataDoc = doc(db, 'artifacts', appId, 'users', user.uid, 'userData', 'main');
-        const unsub = onSnapshot(dataDoc, (snapshot) => {
-          if (snapshot.exists()) {
-            const data = snapshot.data();
-            if (data.userProfile) {
-              setUserProfile(data.userProfile);
-              // 편집 폼 상태도 동기화하여 이전 사용자 데이터가 남지 않도록 함
-              setProfileForm(data.userProfile); 
+        const fetchData = async () => {
+          const dataDoc = doc(db, 'artifacts', appId, 'users', user.uid, 'userData', 'main');
+          try {
+            const snapshot = await getDoc(dataDoc);
+            if (snapshot.exists()) {
+              const data = snapshot.data();
+              if (data.userProfile) {
+                setUserProfile(data.userProfile);
+                setProfileForm(data.userProfile); 
+              }
+              if (data.tasks) setTasks(data.tasks);
+              if (data.userApplications) setUserApplications(data.userApplications);
+              if (data.leagueEntry) setLeagueEntry(data.leagueEntry);
+              if (data.pkmnList) setPkmnList(data.pkmnList);
             }
-            if (data.tasks) setTasks(data.tasks);
-            if (data.userApplications) setUserApplications(data.userApplications);
-            if (data.leagueEntry) setLeagueEntry(data.leagueEntry);
-            if (data.pkmnList) setPkmnList(data.pkmnList);
-          }
-        }, (err) => { });
-        return () => unsub();
+          } catch(err) { console.error("Load error:", err); }
+        };
+        fetchData();
       }, [user]);
 
       // 시뮬레이션 알림
@@ -520,28 +521,40 @@
 
                {currentPage === 'entry' && (
                   <div className="animate-in fade-in duration-500 space-y-6 text-left font-sans font-bold">
-                    <div className="flex justify-between items-center mb-2"><div><h3 className="text-xl font-black text-emerald-950 uppercase tracking-tight">리그 엔트리 등록</h3><p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5 tracking-widest">Official Battle Entry</p></div><button onClick={() => setCurrentPage('home')} className="text-xs font-bold text-gray-400 hover:text-emerald-600 flex items-center gap-1"><ChevronLeft size={14}/> 홈으로</button></div>
+                    <div className="flex justify-between items-end mb-4">
+                      <div>
+                        <h3 className="text-xl font-black text-emerald-950 uppercase tracking-tight">리그 엔트리 등록</h3>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5 tracking-widest">Official Battle Entry</p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <button onClick={async () => {
+                           await saveUserData({ leagueEntry });
+                           setToast({ show: true, message: "엔트리 정보가 데이터베이스에 저장되었습니다." });
+                        }} className="px-4 py-2.5 bg-emerald-600 text-white text-[11px] font-black uppercase tracking-widest shadow-lg flex items-center gap-1.5 rounded-lg hover:bg-emerald-700 active:scale-95 transition-all"><Check size={14}/> 엔트리 저장</button>
+                        <button onClick={() => setCurrentPage('home')} className="text-xs font-bold text-gray-400 hover:text-emerald-600 flex items-center gap-1"><ChevronLeft size={14}/> 홈으로</button>
+                      </div>
+                    </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 border border-gray-200 shadow-xl bg-white rounded-xl overflow-hidden">
                       {leagueEntry.map((p, idx) => (
                         <div key={idx} className="flex flex-col border-r last:border-r-0 border-gray-200 group">
                           <div className="aspect-square relative flex items-center justify-center p-4 transition-colors duration-500 font-bold" style={{ backgroundColor: TYPE_COLORS[p.type1] || TYPE_COLORS['선택'] }}>
                             <div className="w-full h-full bg-white/40 backdrop-blur-sm border border-white/20 flex items-center justify-center overflow-hidden font-bold">{p.image ? <img src={p.image} className="w-full h-full object-contain" /> : <div className="text-4xl text-white/50 font-black">?</div>}</div>
                             <label className="absolute inset-0 bg-black/40 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity z-10"><Camera size={24} /><input type="file" className="hidden" accept="image/*" onChange={(e) => {
-                              const f = e.target.files[0]; if(f){ const r = new FileReader(); r.onloadend = () => { const next = [...leagueEntry]; next[idx].image = r.result; setLeagueEntry(next); saveUserData({ leagueEntry: next }); }; r.readAsDataURL(f); }
+                              const f = e.target.files[0]; if(f){ const r = new FileReader(); r.onloadend = () => { const next = [...leagueEntry]; next[idx].image = r.result; setLeagueEntry(next); }; r.readAsDataURL(f); }
                             }} /></label>
                           </div>
                           <div className="p-3 border-b border-gray-100 text-center bg-gray-50/50 font-bold">
-                            <input type="text" placeholder="이름" className="w-full bg-transparent text-center font-black text-[11px] outline-none" value={p.name} onChange={(e) => { const next = [...leagueEntry]; next[idx].name = e.target.value; setLeagueEntry(next); saveUserData({ leagueEntry: next }); }} />
-                            <div className="flex items-center justify-center gap-1 mt-1 font-bold"><span className="text-[9px] text-gray-400">Lv.</span><input type="number" className="w-8 bg-transparent text-[9px] font-black text-gray-600 outline-none" value={p.level} onChange={(e) => { const next = [...leagueEntry]; next[idx].level = e.target.value; setLeagueEntry(next); saveUserData({ leagueEntry: next }); }} /></div>
+                            <input type="text" placeholder="이름" className="w-full bg-transparent text-center font-black text-[11px] outline-none" value={p.name} onChange={(e) => { const next = [...leagueEntry]; next[idx].name = e.target.value; setLeagueEntry(next); }} />
+                            <div className="flex items-center justify-center gap-1 mt-1 font-bold"><span className="text-[9px] text-gray-400">Lv.</span><input type="number" className="w-8 bg-transparent text-[9px] font-black text-gray-600 outline-none" value={p.level} onChange={(e) => { const next = [...leagueEntry]; next[idx].level = e.target.value; setLeagueEntry(next); }} /></div>
                           </div>
                           <div className="p-3 border-b border-gray-100 bg-white space-y-1.5 font-bold">
-                            <select className="w-full py-1 rounded-md text-[8px] font-black text-white text-center appearance-none outline-none cursor-pointer" style={{ backgroundColor: TYPE_COLORS[p.type1] }} value={p.type1} onChange={(e) => { const next = [...leagueEntry]; next[idx].type1 = e.target.value; setLeagueEntry(next); saveUserData({ leagueEntry: next }); }}>{Object.keys(TYPE_COLORS).map(t => <option key={t} value={t} className="text-gray-800 bg-white">{t}</option>)}</select>
-                            <select className="w-full py-1 rounded-md text-[8px] font-black text-white text-center appearance-none outline-none cursor-pointer" style={{ backgroundColor: TYPE_COLORS[p.type2] || TYPE_COLORS['없음'] }} value={p.type2} onChange={(e) => { const next = [...leagueEntry]; next[idx].type2 = e.target.value; setLeagueEntry(next); saveUserData({ leagueEntry: next }); }}>{Object.keys(TYPE_COLORS).map(t => <option key={t} value={t} className="text-gray-800 bg-white">{t}</option>)}</select>
+                            <select className="w-full py-1 rounded-md text-[8px] font-black text-white text-center appearance-none outline-none cursor-pointer" style={{ backgroundColor: TYPE_COLORS[p.type1] }} value={p.type1} onChange={(e) => { const next = [...leagueEntry]; next[idx].type1 = e.target.value; setLeagueEntry(next); }}>{Object.keys(TYPE_COLORS).map(t => <option key={t} value={t} className="text-gray-800 bg-white">{t}</option>)}</select>
+                            <select className="w-full py-1 rounded-md text-[8px] font-black text-white text-center appearance-none outline-none cursor-pointer" style={{ backgroundColor: TYPE_COLORS[p.type2] || TYPE_COLORS['없음'] }} value={p.type2} onChange={(e) => { const next = [...leagueEntry]; next[idx].type2 = e.target.value; setLeagueEntry(next); }}>{Object.keys(TYPE_COLORS).map(t => <option key={t} value={t} className="text-gray-800 bg-white">{t}</option>)}</select>
                           </div>
-                          <div className="p-3 border-b border-gray-100 bg-gray-50/30 font-bold"><input type="text" placeholder="특성" className="w-full bg-transparent text-center text-[9px] font-bold outline-none" value={p.ability} onChange={(e) => { const next = [...leagueEntry]; next[idx].ability = e.target.value; setLeagueEntry(next); saveUserData({ leagueEntry: next }); }} /></div>
-                          <div className="p-3 border-b border-gray-100 bg-white font-bold"><input type="text" placeholder="아이템" className="w-full bg-transparent text-center text-[9px] font-bold text-emerald-700 outline-none" value={p.item} onChange={(e) => { const next = [...leagueEntry]; next[idx].item = e.target.value; setLeagueEntry(next); saveUserData({ leagueEntry: next }); }} /></div>
+                          <div className="p-3 border-b border-gray-100 bg-gray-50/30 font-bold"><input type="text" placeholder="특성" className="w-full bg-transparent text-center text-[9px] font-bold outline-none" value={p.ability} onChange={(e) => { const next = [...leagueEntry]; next[idx].ability = e.target.value; setLeagueEntry(next); }} /></div>
+                          <div className="p-3 border-b border-gray-100 bg-white font-bold"><input type="text" placeholder="아이템" className="w-full bg-transparent text-center text-[9px] font-bold text-emerald-700 outline-none" value={p.item} onChange={(e) => { const next = [...leagueEntry]; next[idx].item = e.target.value; setLeagueEntry(next); }} /></div>
                           <div className="p-3 flex-1 bg-gray-50/20 font-black space-y-1 font-bold">
-                            {p.moves.map((move, mIdx) => (<input key={mIdx} type="text" placeholder={`기술 ${mIdx + 1}`} className="w-full bg-white border-b border-gray-100 px-1 py-1 text-center text-[9px] text-indigo-900 outline-none font-bold" value={move} onChange={(e) => { const next = [...leagueEntry]; next[idx].moves[mIdx] = e.target.value; setLeagueEntry(next); saveUserData({ leagueEntry: next }); }} />))}
+                            {p.moves.map((move, mIdx) => (<input key={mIdx} type="text" placeholder={`기술 ${mIdx + 1}`} className="w-full bg-white border-b border-gray-100 px-1 py-1 text-center text-[9px] text-indigo-900 outline-none font-bold" value={move} onChange={(e) => { const next = [...leagueEntry]; next[idx].moves[mIdx] = e.target.value; setLeagueEntry(next); }} />))}
                           </div>
                         </div>
                       ))}
