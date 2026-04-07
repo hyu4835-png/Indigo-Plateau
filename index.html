@@ -40,7 +40,6 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    // deleteDoc 추가됨
     import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     
     // Expose Firebase APIs globally for the React app script
@@ -73,7 +72,8 @@
       "CheckCircle2", "Clock", "Menu", "X", "MoreVertical", "Plus", "Calendar", "AlertCircle", "Camera",
       "MapPin", "ShieldCheck", "Stethoscope", "Trophy", "Zap", "Grid", "ChevronDown", "Send", "FileText",
       "Package", "Download", "Printer", "Check", "HelpCircle", "PlayCircle", "Trash2", "UserPlus", "LogIn",
-      "ExternalLink", "Briefcase", "Search", "Filter", "Mail", "Phone", "Info", "MessageSquare"
+      "ExternalLink", "Briefcase", "Search", "Filter", "Mail", "Phone", "Info", "MessageSquare",
+      "Hash", "MessageCircle", "ImageIcon"
     ];
 
     const lucideIcons = {};
@@ -103,7 +103,7 @@
       CheckCircle2, Clock, Menu, X, MoreVertical, Plus, Calendar: CalendarIcon, AlertCircle, Camera,
       MapPin, ShieldCheck, Stethoscope, Trophy, Zap, Grid, ChevronDown, Send, FileText,
       Package, Download, Printer, Check, HelpCircle, PlayCircle, Trash2, UserPlus, LogIn,
-      ExternalLink, Briefcase, Search, Filter, Mail, Phone, Info, MessageSquare
+      ExternalLink, Briefcase, Search, Filter, Mail, Phone, Info, MessageSquare, Hash, MessageCircle
     } = lucideIcons;
 
     // -- Firebase 초기화 --
@@ -119,7 +119,6 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    // 무작위 경로 생성을 방지하기 위해 단일 프로젝트 ID로 고정 (초기화 문제 해결의 핵심)
     const appId = 'indigo-plateau-ecf0c';
 
     // -- 상수 데이터 --
@@ -140,7 +139,7 @@
       '얼음': '#96D9D6', '드래곤': '#6F35FC', '악': '#705746', '페어리': '#D685AD', '없음': '#CBD5E1'
     };
 
-        const BANNERS = [
+    const BANNERS = [
       { id: 1, title: "제98회 석영리그 공인 체육관 명단 확정", subtitle: "난이도 조절 관련 간담회 예정", color: "bg-emerald-600" },
       { id: 2, title: "신입 트레이너 스태프 교육 연수", subtitle: "실무 역량 강화를 위한 집중 코스 안내", color: "bg-indigo-600" },
       { id: 3, title: "전 구역 포켓몬센터 정기 점검", subtitle: "이용 시 불편함이 없도록 일정 확인 바랍니다", color: "bg-red-600" }
@@ -152,13 +151,12 @@
       "스프레이": ["스프레이", "실버스프레이", "골드스프레이"]
     };
 
-        const BATTLE_LOGS = [
+    const BATTLE_LOGS = [
       { time: "14:00", date: "2024-06-01", player1: "도전자", player2: "칸나", score: "6 : 5", stadium: "석영리그\n제 3 배틀코트", status: "종료" },
       { time: "16:30", date: "2024-06-01", player1: "도전자", player2: "마론", score: "2 : 1", stadium: "석영리그\n제 4 배틀코트", status: "진행 중" },
       { time: "10:00", date: "2024-06-02", player1: "도전자", player2: "소우", score: "0 : 0", stadium: "챔피언\n배틀코트", status: "예정" }
     ];
     
-    // 생년월일, 비상연락망 추가 반영
     const INITIAL_PROFILE = {
       name: '신입 사원', englishName: 'New Recruit', dept: '미지정', position: '인턴',
       location: '석영고원 본부 1층', staffId: '', joinDate: new Date().toISOString().split('T')[0],
@@ -309,33 +307,28 @@
       const [modalMode, setModalMode] = useState('add');
       const [taskFilter, setTaskFilter] = useState('전체');
 
-      // --- 메신저 관련 상태 추가 ---
       const [publicUsers, setPublicUsers] = useState([]);
       const [allChats, setAllChats] = useState([]);
       const [allMessages, setAllMessages] = useState([]);
+      const [allPosts, setAllPosts] = useState([]);
       const [activeChatId, setActiveChatId] = useState(null);
       const [chatInputEmail, setChatInputEmail] = useState('');
       const [chatMessageInput, setChatMessageInput] = useState('');
 
-      // --- 예약 캘린더/배틀 기믹 추가 상태 ---
       const [battleGimmicks, setBattleGimmicks] = useState({ mega: false, zmove: false, dmax: false, tera: false });
       const [calendarDate, setCalendarDate] = useState(new Date());
       const [selectedCenterDate, setSelectedCenterDate] = useState(null);
       const [depositSelection, setDepositSelection] = useState([false, false, false, false, false, false]);
 
-      // -- 데이터 상태 --
       const [userProfile, setUserProfile] = useState({ ...INITIAL_PROFILE });
       const [profileForm, setProfileForm] = useState({ ...INITIAL_PROFILE });
       const [tasks, setTasks] = useState([]);
       const [userApplications, setUserApplications] = useState([]);
       const [leagueEntry, setLeagueEntry] = useState([...INITIAL_ENTRY]);
       const [formState, setFormState] = useState({ id: null, title: '', status: '대기', types: ['내 업무'], department: '', priority: '보통' });
-      const [packageRequestTitle, setPackageRequestTitle] = useState(''); // 버그 수정을 위한 비품 신청 전용 상태 추가
+      const [packageRequestTitle, setPackageRequestTitle] = useState('');
 
       const [confirmModal, setConfirmModal] = useState({ isOpen: false, day: null, type: null });
-      const [pkmnForm, setPkmnForm] = useState({ name: '', status: '회복 중' });
-      const [pkmnList, setPkmnList] = useState([]);
-
       const [toast, setToast] = useState({ show: false, message: '' });
       const [notificationCount, setNotificationCount] = useState(0);
 
@@ -345,13 +338,11 @@
         { id: 3, category: '업무', author: '트레이너팀', title: '신오지방 출장 근무 예정 안내', date: '2024-05-15', content: '신오지방 축제 관련하여 출장 근무가 예정되어 있습니다. 자세한 업무 내용은 각 팀으로 전달된 기술서 확인 바라며, 해당 기간에는 가급적 휴가 신청을 자제하여 주시기 바랍니다. 감사합니다.', isNew: false },
       ]);
 
-      // -- 명시적 데이터 저장 로직 --
       const saveUserData = async (updates = {}) => {
         if (!user) return;
         const dataDoc = doc(db, 'artifacts', appId, 'users', user.uid, 'userData', 'main');
         try {
           await setDoc(dataDoc, updates, { merge: true });
-          // 프로필 업데이트 시 공개 디렉토리에도 동기화
           if (updates.userProfile) {
             const publicUserDoc = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
             await setDoc(publicUserDoc, {
@@ -366,7 +357,6 @@
         } catch (e) { console.error("Save error:", e); }
       };
 
-      // -- Firebase 인증 감시 --
       useEffect(() => {
         const initAuth = async () => {
           if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -382,7 +372,6 @@
             setUser(u);
             setIsLoggedIn(true);
           } else {
-            // 로그아웃 시 모든 데이터 초기화
             setUser(null);
             setIsLoggedIn(false);
             setUserProfile({ ...INITIAL_PROFILE });
@@ -391,14 +380,12 @@
             setUserApplications([]);
             setLeagueEntry([...INITIAL_ENTRY]);
             setBattleGimmicks({ mega: false, zmove: false, dmax: false, tera: false });
-            setPkmnList([]);
           }
           setIsAuthInitialized(true);
         });
         return () => unsubscribe();
       }, []);
 
-      // -- 데이터 불러오기 --
       useEffect(() => {
         if (!user) return;
         const fetchData = async () => {
@@ -408,7 +395,6 @@
             if (snapshot.exists()) {
               const data = snapshot.data();
               if (data.userProfile) {
-                // 이전 데이터에 생년월일 등이 없을 경우를 대비하여 병합
                 const loadedProfile = { ...INITIAL_PROFILE, ...data.userProfile };
                 setUserProfile(loadedProfile);
                 setProfileForm(loadedProfile); 
@@ -418,14 +404,13 @@
               if (data.userApplications) setUserApplications(data.userApplications);
               if (data.leagueEntry) setLeagueEntry(data.leagueEntry);
               if (data.battleGimmicks) setBattleGimmicks(data.battleGimmicks);
-              if (data.pkmnList) setPkmnList(data.pkmnList);
             }
           } catch(err) { console.error("Load error:", err); }
         };
         fetchData();
       }, [user]);
 
-      // --- 공개 데이터 실시간 동기화 (메신저 용) ---
+      // 공개 데이터 실시간 동기화 (게시판 포함)
       useEffect(() => {
         if (!user) return;
         const usersUnsub = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), snap => {
@@ -440,47 +425,116 @@
           const arr = []; snap.forEach(d => arr.push({ id: d.id, ...d.data() })); setAllMessages(arr);
         }, err => console.error(err));
 
-        return () => { usersUnsub(); chatsUnsub(); msgsUnsub(); };
+        const postsUnsub = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'posts'), snap => {
+          const arr = []; snap.forEach(d => arr.push({ id: d.id, ...d.data() })); setAllPosts(arr);
+        }, err => console.error(err));
+
+        return () => { usersUnsub(); chatsUnsub(); msgsUnsub(); postsUnsub(); };
       }, [user]);
 
-      // --- 안 읽은 메신저 알림 배지 및 토스트 감지 로직 ---
+      // 메신저 및 게시판 알림 로직
       const prevMsgCount = useRef(0);
+      const prevPostsRef = useRef([]);
+
       useEffect(() => {
           if (!user) {
               prevMsgCount.current = 0;
               return;
           }
-          if (allMessages.length === 0) return;
-          
-          if (prevMsgCount.current === 0) {
-              prevMsgCount.current = allMessages.length;
-              return;
-          }
-
-          if (allMessages.length > prevMsgCount.current) {
-              const sortedMsgs = [...allMessages].sort((a,b) => a.timestamp - b.timestamp);
-              const newMsgs = sortedMsgs.slice(prevMsgCount.current);
-              
-              newMsgs.forEach(msg => {
-                  if (msg.senderId !== user.uid) {
-                      // 내가 참여한 채팅방인지 확인
-                      const isMyChat = allChats.some(c => c.id === msg.roomId && c.participants.includes(user.uid));
-                      if (isMyChat) {
-                          // 현재 메신저 창을 보고 있지 않거나, 다른 대화방을 보고 있을 때 알림
-                          if (currentPage !== 'messenger' || activeChatId !== msg.roomId) {
-                              const sender = publicUsers.find(u => u.uid === msg.senderId);
-                              setToast({ show: true, message: `[메신저] ${sender?.name || '알 수 없음'}: ${msg.text}` });
-                              setNotificationCount(prev => prev + 1);
+          if (allMessages.length > 0) {
+              if (prevMsgCount.current === 0) {
+                  prevMsgCount.current = allMessages.length;
+              } else if (allMessages.length > prevMsgCount.current) {
+                  const sortedMsgs = [...allMessages].sort((a,b) => a.timestamp - b.timestamp);
+                  const newMsgs = sortedMsgs.slice(prevMsgCount.current);
+                  newMsgs.forEach(msg => {
+                      if (msg.senderId !== user.uid) {
+                          const isMyChat = allChats.some(c => c.id === msg.roomId && c.participants.includes(user.uid));
+                          if (isMyChat) {
+                              if (currentPage !== 'messenger' || activeChatId !== msg.roomId) {
+                                  const sender = publicUsers.find(u => u.uid === msg.senderId);
+                                  setToast({ show: true, message: `[메신저] ${sender?.name || '알 수 없음'}: ${msg.text}` });
+                                  setNotificationCount(prev => prev + 1);
+                              }
                           }
                       }
-                  }
-              });
-              prevMsgCount.current = allMessages.length;
+                  });
+                  prevMsgCount.current = allMessages.length;
+              }
           }
       }, [allMessages, user, allChats, publicUsers, currentPage, activeChatId]);
 
+      // 댓글 알림 로직
+      useEffect(() => {
+          if (!user || allPosts.length === 0) return;
+          if (prevPostsRef.current.length === 0) {
+              prevPostsRef.current = allPosts;
+              return;
+          }
+          allPosts.forEach(newPost => {
+              if (newPost.authorId === user.uid) {
+                  const oldPost = prevPostsRef.current.find(p => p.id === newPost.id);
+                  if (oldPost && newPost.comments && newPost.comments.length > (oldPost.comments?.length || 0)) {
+                      const newComments = newPost.comments.slice(oldPost.comments?.length || 0);
+                      newComments.forEach(c => {
+                          if (c.authorId !== user.uid) {
+                              const sender = publicUsers.find(u => u.uid === c.authorId);
+                              setToast({ show: true, message: `[사내 게시판] ${sender?.name || '알 수 없음'}님이 회원님의 글에 댓글을 남겼습니다.` });
+                              setNotificationCount(prev => prev + 1);
+                          }
+                      });
+                  }
+              }
+          });
+          prevPostsRef.current = allPosts;
+      }, [allPosts, user, publicUsers]);
 
-      // --- 메신저 로직 ---
+
+      // 게시판 로직
+      const handleCreatePost = async (text, image) => {
+          if (!text.trim() && !image) return;
+          const newPostId = `post_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
+          try {
+              await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'posts', newPostId), {
+                  id: newPostId,
+                  authorId: user.uid,
+                  text: text,
+                  imageUrl: image,
+                  timestamp: Date.now(),
+                  comments: []
+              });
+
+              // 100개 제한
+              if (allPosts.length >= 100) {
+                  const sortedPosts = [...allPosts].sort((a,b) => a.timestamp - b.timestamp); // 과거순
+                  const overLimitCount = sortedPosts.length - 99;
+                  for(let i=0; i<overLimitCount; i++) {
+                      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'posts', sortedPosts[i].id));
+                  }
+              }
+              setToast({ show: true, message: "게시글이 성공적으로 업로드되었습니다." });
+          } catch(e) { console.error(e); }
+      };
+
+      const handleAddComment = async (postId, text) => {
+          if (!text.trim()) return;
+          const post = allPosts.find(p => p.id === postId);
+          if (!post) return;
+          const newComment = {
+              id: `c_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,
+              authorId: user.uid,
+              text: text,
+              timestamp: Date.now()
+          };
+          try {
+              await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'posts', postId), {
+                  comments: [...(post.comments || []), newComment]
+              }, { merge: true });
+          } catch(e) { console.error(e); }
+      };
+
+
+      // 메신저 로직
       const handleCreateChat = async () => {
         if (!chatInputEmail.trim()) return;
         if (chatInputEmail === userProfile.email) {
@@ -525,25 +579,19 @@
       
       const handleDeleteMessage = async (msgId, roomId) => {
         try {
-          // 1. 메시지 문서 삭제
           await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'messages', msgId));
-          
-          // 2. 삭제 후 해당 채팅방의 메시지들 중 가장 최신 메시지를 찾아 lastMessage 업데이트
           const roomMessages = allMessages.filter(m => m.roomId === roomId && m.id !== msgId).sort((a,b) => a.timestamp - b.timestamp);
           let newLastMessage = '';
           let newLastMessageTime = Date.now();
-          
           if (roomMessages.length > 0) {
              const lastMsg = roomMessages[roomMessages.length - 1];
              newLastMessage = lastMsg.text;
              newLastMessageTime = lastMsg.timestamp;
           }
-          
           await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'chats', roomId), {
              lastMessage: newLastMessage,
              lastMessageTime: newLastMessageTime
           }, { merge: true });
-          
         } catch(e) {
           console.error("Delete message error:", e);
           setToast({ show: true, message: "메시지 삭제 중 오류가 발생했습니다." });
@@ -552,23 +600,6 @@
       
       const myChats = allChats.filter(c => c.participants && c.participants.includes(user?.uid)).sort((a,b) => b.lastMessageTime - a.lastMessageTime);
 
-      // 시뮬레이션 알림
-      useEffect(() => {
-        if (!isLoggedIn) return;
-        const interval = setInterval(() => {
-          const pending = userApplications.filter(a => a.status === '처리중');
-          if (pending.length === 0) return;
-          const target = pending[Math.floor(Math.random() * pending.length)];
-          setToast({ show: true, message: `[HQ 시스템] ${target.title} 처리가 완료되었습니다.` });
-          setNotificationCount(c => c + 1);
-          const nextApps = userApplications.map(a => a.id === target.id ? { ...a, status: '완료' } : a);
-          setUserApplications(nextApps);
-          saveUserData({ userApplications: nextApps });
-          setTimeout(() => setToast({ show: false, message: '' }), 5000);
-        }, 120000);
-        return () => clearInterval(interval);
-      }, [isLoggedIn, userApplications]);
-
       const [authForm, setAuthForm] = useState({ email: '', password: '' });
       const [authError, setAuthError] = useState('');
 
@@ -576,12 +607,7 @@
         e.preventDefault();
         setAuthError('');
         const { email, password } = authForm;
-
-        if (!email || !password) {
-          setAuthError('모든 필드를 입력해주세요.');
-          return;
-        }
-
+        if (!email || !password) { setAuthError('모든 필드를 입력해주세요.'); return; }
         try {
           if (isSignUpMode) {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -668,10 +694,11 @@
             </header>
 
             <main className="p-8 max-w-6xl mx-auto w-full flex-1">
-               {currentPage === 'home' && <HomeView userProfile={userProfile} tasks={tasks} notices={notices} handleServiceClick={handleServiceClick} setCurrentPage={setCurrentPage} setSelectedNotice={setSelectedNotice} logout={logout} userApplications={userApplications} notificationCount={notificationCount} myChats={myChats} publicUsers={publicUsers} user={user} setActiveChatId={setActiveChatId} />}
+               {currentPage === 'home' && <HomeView userProfile={userProfile} tasks={tasks} notices={notices} handleServiceClick={handleServiceClick} setCurrentPage={setCurrentPage} setSelectedNotice={setSelectedNotice} logout={logout} userApplications={userApplications} notificationCount={notificationCount} myChats={myChats} publicUsers={publicUsers} user={user} setActiveChatId={setActiveChatId} allPosts={allPosts} />}
                {currentPage === 'profile' && <ProfileView userProfile={userProfile} setIsProfileModalOpen={setIsProfileModalOpen} userApplications={userApplications} leagueEntry={leagueEntry} />}
                {currentPage === 'tasks' && <TasksView tasks={tasks} taskFilter={taskFilter} setTaskFilter={setTaskFilter} openTaskModal={(mode, t) => { setModalMode(mode); setFormState(t || { id: null, title: '', status: '대기', types: ['내 업무'], department: '', priority: '보통' }); setIsTaskModalOpen(true); }} />}
                {currentPage === 'messenger' && <MessengerView user={user} publicUsers={publicUsers} myChats={myChats} allMessages={allMessages} activeChatId={activeChatId} setActiveChatId={setActiveChatId} chatInputEmail={chatInputEmail} setChatInputEmail={setChatInputEmail} handleCreateChat={handleCreateChat} chatMessageInput={chatMessageInput} setChatMessageInput={setChatMessageInput} handleSendMessage={handleSendMessage} handleDeleteMessage={handleDeleteMessage} />}
+               {currentPage === 'board' && <BoardView user={user} userProfile={userProfile} publicUsers={publicUsers} allPosts={allPosts} handleCreatePost={handleCreatePost} handleAddComment={handleAddComment} setToast={setToast} />}
                {currentPage === 'conduct' && <ConductView setCurrentPage={setCurrentPage} />}
                {currentPage === 'stadium' && <LiveStadiumView setCurrentPage={setCurrentPage} />}
 
@@ -767,7 +794,6 @@
                        <div className="flex justify-between items-center mb-2 font-bold"><div><h3 className="text-xl font-black text-emerald-950 uppercase tracking-tight">사내 포켓몬센터 예약</h3><p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5 tracking-widest">Pokemon Center Service</p></div><button onClick={() => setCurrentPage('home')} className="text-xs font-bold text-gray-400 hover:text-emerald-600 flex items-center gap-1 font-bold"><ChevronLeft size={14}/> 홈으로</button></div>
                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                          
-                         {/* Calendar Section */}
                          <div className="lg:col-span-5 bg-white border border-gray-200 shadow-sm rounded-xl p-6 font-bold flex flex-col">
                            <div className="flex justify-between items-center mb-5 font-bold">
                               <h4 className="font-black text-gray-800 text-xs flex items-center gap-2">
@@ -795,7 +821,6 @@
                            </div>
                          </div>
                          
-                         {/* Deposited Pokemon Status Section (연동된 엔트리 예약) */}
                          <div className="lg:col-span-7 bg-white border border-gray-200 shadow-sm rounded-xl p-6 flex flex-col font-bold">
                            <div className="flex items-center gap-2 mb-6 border-b border-gray-50 pb-4"><Stethoscope size={16} className="text-red-500" /><h4 className="font-black text-gray-800 text-xs">엔트리 기반 예약 관리</h4></div>
                            
@@ -913,6 +938,7 @@
             <NavItem icon={<LayoutDashboard size={18} />} label="홈 화면" id="home" currentPage={currentPage} setCurrentPage={setCurrentPage} setIsSidebarOpen={setIsSidebarOpen} />
             <NavItem icon={<ClipboardList size={18} />} label="업무 관리" id="tasks" currentPage={currentPage} setCurrentPage={setCurrentPage} setIsSidebarOpen={setIsSidebarOpen} />
             <NavItem icon={<MessageSquare size={18} />} label="사내 메신저" id="messenger" currentPage={currentPage} setCurrentPage={setCurrentPage} setIsSidebarOpen={setIsSidebarOpen} />
+            <NavItem icon={<Hash size={18} />} label="사내 게시판" id="board" currentPage={currentPage} setCurrentPage={setCurrentPage} setIsSidebarOpen={setIsSidebarOpen} />
             <div>
               <button onClick={() => setIsServiceMenuOpen(!isServiceMenuOpen)} className={`flex items-center justify-between px-4 py-3 w-full transition-all ${isServiceMenuOpen ? 'bg-emerald-50 text-emerald-600' : 'text-gray-500 hover:bg-emerald-50'}`}>
                 <div className="flex items-center gap-3 font-bold"><Grid size={18} /><span>서비스</span></div><ChevronDown size={14} className={`transition-transform ${isServiceMenuOpen ? 'rotate-180' : ''}`} />
@@ -1019,115 +1045,308 @@
     );
 
     // -- 뷰 컴포넌트들 --
-    const HomeView = ({ userProfile, tasks, notices, handleServiceClick, setCurrentPage, setSelectedNotice, logout, userApplications, notificationCount, myChats, publicUsers, user, setActiveChatId }) => (
-      <div className="animate-in fade-in duration-500 space-y-5 pb-10 font-sans">
-        {/* 환영 메시지 추가 */}
-        <div className="flex items-center justify-between bg-white border border-emerald-100 p-6 shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600">
-              <Zap size={24} />
-            </div>
-            <div>
-              <h2 className="text-lg font-black text-gray-900">환영합니다, {userProfile.position} {userProfile.name}님</h2>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Welcome to Indigo Plateau Management System</p>
-            </div>
-          </div>
-          <div className="hidden md:block">
-            <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 uppercase tracking-tighter">System Online • 석영 시간 22:59</span>
-          </div>
-        </div>
+    const HomeView = ({ userProfile, tasks, notices, handleServiceClick, setCurrentPage, setSelectedNotice, logout, userApplications, notificationCount, myChats, publicUsers, user, setActiveChatId, allPosts }) => {
+      // 사내 게시판 최근 게시글 추출 (최신순)
+      const latestPost = allPosts.length > 0 ? [...allPosts].sort((a,b) => b.timestamp - a.timestamp)[0] : null;
+      const latestPostAuthor = latestPost ? publicUsers.find(u => u.uid === latestPost.authorId) : null;
 
-        <div className="grid grid-cols-12 gap-5 text-left font-bold">
-          <section className="col-span-12 md:col-span-8 bg-white border border-gray-100 shadow-sm p-6">
-            <h3 className="font-black text-[13px] text-gray-800 uppercase tracking-tighter mb-5">자주 찾는 서비스</h3>
-            <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
-              {SERVICE_SUB_MENUS.map((sub, idx) => (
-                <div key={idx} onClick={() => handleServiceClick(sub.id)} className="flex flex-col items-center justify-center p-3 bg-gray-50/20 rounded-none border border-transparent hover:border-emerald-100 hover:bg-emerald-50/20 transition-all cursor-pointer group shadow-sm min-h-[100px]">
-                  <div className="p-2.5 bg-white rounded-none shadow-sm mb-2 group-hover:scale-110 transition-transform border border-gray-50">{sub.icon}</div>
-                  <span className="text-[10px] font-black text-gray-800 tracking-tighter text-center whitespace-pre-line leading-tight">{sub.label}</span>
+      return (
+        <div className="animate-in fade-in duration-500 space-y-5 pb-10 font-sans">
+          <div className="flex items-center justify-between bg-white border border-emerald-100 p-6 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600">
+                <Zap size={24} />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-gray-900">환영합니다, {userProfile.position} {userProfile.name}님</h2>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Welcome to Indigo Plateau Management System</p>
+              </div>
+            </div>
+            <div className="hidden md:block">
+              <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 uppercase tracking-tighter">System Online • 석영 시간 22:59</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-12 gap-5 text-left font-bold">
+            <section className="col-span-12 md:col-span-8 bg-white border border-gray-100 shadow-sm p-6 flex flex-col">
+              <h3 className="font-black text-[13px] text-gray-800 uppercase tracking-tighter mb-5">자주 찾는 서비스</h3>
+              <div className="grid grid-cols-3 md:grid-cols-5 gap-3 mb-5">
+                {SERVICE_SUB_MENUS.map((sub, idx) => (
+                  <div key={idx} onClick={() => handleServiceClick(sub.id)} className="flex flex-col items-center justify-center p-3 bg-gray-50/20 rounded-none border border-transparent hover:border-emerald-100 hover:bg-emerald-50/20 transition-all cursor-pointer group shadow-sm min-h-[100px]">
+                    <div className="p-2.5 bg-white rounded-none shadow-sm mb-2 group-hover:scale-110 transition-transform border border-gray-50">{sub.icon}</div>
+                    <span className="text-[10px] font-black text-gray-800 tracking-tighter text-center whitespace-pre-line leading-tight">{sub.label}</span>
+                  </div>
+                ))}
+              </div>
+              
+              {/* 홈화면 사내 게시판 1개 미리보기 */}
+              <div onClick={() => setCurrentPage('board')} className="mt-auto bg-gray-50 border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-emerald-300 hover:shadow-sm transition-all group">
+                <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-[10px] font-black text-emerald-600 uppercase flex items-center gap-1.5"><Hash size={12}/> 사내 게시판 최신글</h4>
+                    <ChevronRight size={14} className="text-gray-400 group-hover:text-emerald-500 transition-colors" />
                 </div>
-              ))}
-            </div>
-          </section>
-          <section className="col-span-12 md:col-span-4 bg-white border border-emerald-100 shadow-sm p-6 flex flex-col h-full text-left">
-            <div className="flex gap-4 items-center">
-              <div className="w-14 h-14 bg-emerald-500 rounded-none flex items-center justify-center text-white text-2xl font-bold shadow-md overflow-hidden flex-shrink-0 border-2 border-white">
-                {userProfile.profileImage ? <img src={userProfile.profileImage} className="w-full h-full object-cover" /> : userProfile.name.charAt(0)}
-              </div>
-              <div className="flex-1 flex flex-col justify-center truncate">
-                <h4 className="font-black text-gray-800 text-[13px] truncate">{userProfile.name} <span className="font-bold text-gray-400 text-[10px]">{userProfile.position}</span></h4>
-                <div className="mt-0.5 text-[10px] font-black uppercase tracking-widest text-emerald-600 truncate">{userProfile.dept}</div>
-              </div>
-              <div className="flex flex-col gap-1.5 flex-shrink-0">
-                <button onClick={() => setCurrentPage('profile')} className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-none text-[9px] font-black uppercase hover:bg-emerald-100 w-full text-center transition-colors">Profile</button>
-                <button onClick={logout} className="px-3 py-1.5 bg-gray-50 text-gray-400 rounded-none text-[9px] font-black uppercase hover:bg-gray-100 w-full text-center transition-colors">Logout</button>
-              </div>
-            </div>
-            
-            <div className="mt-5 pt-5 border-t border-gray-100 flex-1 flex flex-col">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-black text-[11px] text-gray-800 uppercase tracking-tighter">최근 메신저</h3>
-                <button onClick={() => setCurrentPage('messenger')} className="text-[9px] font-bold text-emerald-600 hover:text-emerald-700">전체보기</button>
-              </div>
-              <div className="space-y-2 flex-1">
-                {myChats && myChats.length > 0 ? myChats.slice(0,2).map(chat => {
-                   const partnerId = chat.participants.find(id => id !== user.uid);
-                   const partner = publicUsers.find(u => u.uid === partnerId);
-                   return (
-                      <div key={chat.id} onClick={() => { setActiveChatId(chat.id); setCurrentPage('messenger'); }} className="p-3 bg-gray-50 hover:bg-emerald-50/30 cursor-pointer border border-gray-100 flex items-center gap-3 transition-colors rounded-lg">
-                         <div className="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0 overflow-hidden shadow-inner border border-white">
-                            {partner?.profileImage ? <img src={partner.profileImage} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-gray-500 font-bold text-[10px]">{partner?.name?.charAt(0) || '?'}</div>}
-                         </div>
-                         <div className="flex-1 overflow-hidden">
-                            <div className="flex justify-between items-end mb-0.5">
-                               <span className="text-[11px] font-black text-gray-800 truncate pr-2">{partner?.name || '알 수 없음'} {partner?.position}</span>
-                               <span className="text-[8px] text-gray-400 font-bold flex-shrink-0">{new Date(chat.lastMessageTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                {latestPost ? (
+                    <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 border border-white shadow-sm">
+                            {latestPostAuthor?.profileImage ? <img src={latestPostAuthor.profileImage} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-gray-500">{latestPostAuthor?.name?.charAt(0) || '?'}</div>}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-baseline gap-1.5 mb-1">
+                                <span className="text-[12px] font-black text-gray-900">{latestPostAuthor?.name || '알 수 없음'}</span>
+                                <span className="text-[9px] text-gray-400 font-bold">{new Date(latestPost.timestamp).toLocaleDateString()}</span>
                             </div>
-                            <p className="text-[10px] text-gray-500 truncate font-medium">{chat.lastMessage || '새로운 대화방입니다.'}</p>
-                         </div>
-                      </div>
-                   )
-                }) : <div className="flex items-center justify-center h-full text-[10px] text-gray-400 font-bold bg-gray-50/50 rounded-lg">최근 대화 내역이 없습니다.</div>}
+                            <p className="text-[11px] text-gray-600 font-medium truncate pr-4">{latestPost.text || '(이미지 업로드)'}</p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-[11px] text-gray-400 font-bold flex items-center gap-2 h-8"><MessageCircle size={14}/> 첫 번째 게시글을 작성해보세요!</div>
+                )}
               </div>
+            </section>
+            
+            <section className="col-span-12 md:col-span-4 bg-white border border-emerald-100 shadow-sm p-6 flex flex-col h-full text-left">
+              <div className="flex gap-4 items-center">
+                <div className="w-14 h-14 bg-emerald-500 rounded-none flex items-center justify-center text-white text-2xl font-bold shadow-md overflow-hidden flex-shrink-0 border-2 border-white">
+                  {userProfile.profileImage ? <img src={userProfile.profileImage} className="w-full h-full object-cover" /> : userProfile.name.charAt(0)}
+                </div>
+                <div className="flex-1 flex flex-col justify-center truncate">
+                  <h4 className="font-black text-gray-800 text-[13px] truncate">{userProfile.name} <span className="font-bold text-gray-400 text-[10px]">{userProfile.position}</span></h4>
+                  <div className="mt-0.5 text-[10px] font-black uppercase tracking-widest text-emerald-600 truncate">{userProfile.dept}</div>
+                </div>
+                <div className="flex flex-col gap-1.5 flex-shrink-0">
+                  <button onClick={() => setCurrentPage('profile')} className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-none text-[9px] font-black uppercase hover:bg-emerald-100 w-full text-center transition-colors">Profile</button>
+                  <button onClick={logout} className="px-3 py-1.5 bg-gray-50 text-gray-400 rounded-none text-[9px] font-black uppercase hover:bg-gray-100 w-full text-center transition-colors">Logout</button>
+                </div>
+              </div>
+              
+              <div className="mt-5 pt-5 border-t border-gray-100 flex-1 flex flex-col">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-black text-[11px] text-gray-800 uppercase tracking-tighter">최근 메신저</h3>
+                  <button onClick={() => setCurrentPage('messenger')} className="text-[9px] font-bold text-emerald-600 hover:text-emerald-700">전체보기</button>
+                </div>
+                <div className="space-y-2 flex-1">
+                  {myChats && myChats.length > 0 ? myChats.slice(0,2).map(chat => {
+                     const partnerId = chat.participants.find(id => id !== user.uid);
+                     const partner = publicUsers.find(u => u.uid === partnerId);
+                     return (
+                        <div key={chat.id} onClick={() => { setActiveChatId(chat.id); setCurrentPage('messenger'); }} className="p-3 bg-gray-50 hover:bg-emerald-50/30 cursor-pointer border border-gray-100 flex items-center gap-3 transition-colors rounded-lg">
+                           <div className="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0 overflow-hidden shadow-inner border border-white">
+                              {partner?.profileImage ? <img src={partner.profileImage} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-gray-500 font-bold text-[10px]">{partner?.name?.charAt(0) || '?'}</div>}
+                           </div>
+                           <div className="flex-1 overflow-hidden">
+                              <div className="flex justify-between items-end mb-0.5">
+                                 <span className="text-[11px] font-black text-gray-800 truncate pr-2">{partner?.name || '알 수 없음'} {partner?.position}</span>
+                                 <span className="text-[8px] text-gray-400 font-bold flex-shrink-0">{new Date(chat.lastMessageTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                              </div>
+                              <p className="text-[10px] text-gray-500 truncate font-medium">{chat.lastMessage || '새로운 대화방입니다.'}</p>
+                           </div>
+                        </div>
+                     )
+                  }) : <div className="flex items-center justify-center h-full text-[10px] text-gray-400 font-bold bg-gray-50/50 rounded-lg">최근 대화 내역이 없습니다.</div>}
+                </div>
+              </div>
+            </section>
+          </div>
+          <BattleBoard setCurrentPage={setCurrentPage} />
+          <div className="grid grid-cols-12 gap-5 items-stretch text-left font-sans font-bold">
+            <div className="col-span-12 md:col-span-8 flex flex-col gap-5">
+              <BannerSlider />
+              <section className="bg-white border border-gray-100 shadow-sm p-6 flex-1">
+                <div className="flex justify-between items-center mb-5">
+                  <h3 className="font-black text-[13px] text-gray-800 uppercase tracking-tighter">최근 실시간 업무</h3>
+                  <button onClick={() => setCurrentPage('tasks')} className="text-[10px] font-bold text-gray-400">전체보기</button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {tasks.slice(0, 4).map(t => (
+                    <div key={t.id} className="p-4 bg-gray-50/50 border border-gray-100 shadow-sm">
+                      <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border ${t.status === '완료' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-indigo-100 text-indigo-700 border-indigo-200'} uppercase`}>{t.status}</span>
+                      <p className="text-[11px] font-black text-gray-800 mt-2 truncate leading-tight">{t.department ? `[${t.department}] ` : ''}{t.title}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </div>
-          </section>
-        </div>
-        <BattleBoard setCurrentPage={setCurrentPage} />
-        <div className="grid grid-cols-12 gap-5 items-stretch text-left font-sans font-bold">
-          <div className="col-span-12 md:col-span-8 flex flex-col gap-5">
-            <BannerSlider />
-            <section className="bg-white border border-gray-100 shadow-sm p-6 flex-1">
-              <div className="flex justify-between items-center mb-5">
-                <h3 className="font-black text-[13px] text-gray-800 uppercase tracking-tighter">최근 실시간 업무</h3>
-                <button onClick={() => setCurrentPage('tasks')} className="text-[10px] font-bold text-gray-400">전체보기</button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {tasks.slice(0, 4).map(t => (
-                  <div key={t.id} className="p-4 bg-gray-50/50 border border-gray-100 shadow-sm">
-                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border ${t.status === '완료' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-indigo-100 text-indigo-700 border-indigo-200'} uppercase`}>{t.status}</span>
-                    <p className="text-[11px] font-black text-gray-800 mt-2 truncate leading-tight">{t.department ? `[${t.department}] ` : ''}{t.title}</p>
+            <section className="col-span-12 md:col-span-4 bg-white border border-gray-100 shadow-sm p-6 flex flex-col">
+              <h3 className="font-black text-[13px] text-gray-800 uppercase tracking-tighter mb-5">사내 공지</h3>
+              <div className="space-y-4 flex-1">
+                {notices.slice(0, 5).map(n => (
+                  <div key={n.id} onClick={() => { setSelectedNotice(n); setCurrentPage('noticeDetail'); }} className="flex flex-col cursor-pointer group border-b border-gray-50 pb-3 last:border-0 font-bold">
+                    <div className="flex items-center gap-2">
+                      <div className="w-1 h-1 bg-emerald-500 rounded-full"></div>
+                      <p className="text-[11px] font-bold text-gray-700 truncate group-hover:text-emerald-600">{n.title}</p>
+                    </div>
+                    <span className="text-[9px] text-gray-300 font-bold mt-1 uppercase">{n.category} • {n.date}</span>
                   </div>
                 ))}
               </div>
             </section>
           </div>
-          <section className="col-span-12 md:col-span-4 bg-white border border-gray-100 shadow-sm p-6 flex flex-col">
-            <h3 className="font-black text-[13px] text-gray-800 uppercase tracking-tighter mb-5">사내 공지</h3>
-            <div className="space-y-4 flex-1">
-              {notices.slice(0, 5).map(n => (
-                <div key={n.id} onClick={() => { setSelectedNotice(n); setCurrentPage('noticeDetail'); }} className="flex flex-col cursor-pointer group border-b border-gray-50 pb-3 last:border-0 font-bold">
-                  <div className="flex items-center gap-2">
-                    <div className="w-1 h-1 bg-emerald-500 rounded-full"></div>
-                    <p className="text-[11px] font-bold text-gray-700 truncate group-hover:text-emerald-600">{n.title}</p>
-                  </div>
-                  <span className="text-[9px] text-gray-300 font-bold mt-1 uppercase">{n.category} • {n.date}</span>
-                </div>
-              ))}
-            </div>
-          </section>
         </div>
-      </div>
-    );
+      );
+    };
+
+    // 타임라인 방식의 사내 게시판 컴포넌트 (X 트위터 유사 구조)
+    const BoardView = ({ user, userProfile, publicUsers, allPosts, handleCreatePost, handleAddComment, setToast }) => {
+      const [text, setText] = useState('');
+      const [image, setImage] = useState(null);
+      const [commentInputs, setCommentInputs] = useState({});
+      const [expandedComments, setExpandedComments] = useState({});
+
+      const submitPost = () => {
+          handleCreatePost(text, image);
+          setText('');
+          setImage(null);
+      };
+
+      // X(트위터) 처럼 최신 글이 제일 위로 오도록 정렬
+      const sortedPosts = [...allPosts].sort((a, b) => b.timestamp - a.timestamp);
+
+      return (
+          <div className="animate-in fade-in duration-500 max-w-2xl mx-auto space-y-4 font-sans text-left pb-10">
+              <div className="flex justify-between items-end mb-4">
+                  <div>
+                      <h3 className="text-xl font-black text-emerald-950 uppercase tracking-tight">사내 게시판</h3>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5 tracking-widest">Company Internal Feed</p>
+                  </div>
+              </div>
+
+              {/* 게시글 작성 블록 */}
+              <div className="bg-white border border-gray-200 shadow-sm rounded-xl p-5 flex gap-4">
+                  <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden flex-shrink-0 border border-gray-100">
+                      {userProfile.profileImage ? <img src={userProfile.profileImage} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center font-bold text-gray-500">{userProfile.name.charAt(0)}</div>}
+                  </div>
+                  <div className="flex-1 flex flex-col">
+                      <textarea
+                          className="w-full text-[14px] font-medium resize-none outline-none min-h-[60px] placeholder-gray-400"
+                          placeholder="무슨 일이 일어나고 있나요?"
+                          value={text}
+                          onChange={e => setText(e.target.value)}
+                      />
+                      {image && (
+                          <div className="relative w-fit mb-3">
+                              <img src={image} className="max-h-64 rounded-xl border border-gray-200 object-contain shadow-sm" />
+                              <button onClick={() => setImage(null)} className="absolute top-2 right-2 bg-gray-900/70 text-white p-1.5 rounded-full hover:bg-gray-900 transition-colors"><X size={14}/></button>
+                          </div>
+                      )}
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                          <label className="flex items-center gap-1.5 text-emerald-600 hover:bg-emerald-50 px-3 py-1.5 rounded-full cursor-pointer transition-colors">
+                              <Camera size={18} />
+                              <span className="text-[11px] font-bold">사진 첨부 (최대 1MB)</span>
+                              <input type="file" accept="image/*" className="hidden" onChange={e => {
+                                  const f = e.target.files[0];
+                                  if (f) {
+                                      if (f.size > 1024 * 1024) {
+                                          setToast({ show: true, message: "파일 크기는 1MB를 초과할 수 없습니다." });
+                                          return;
+                                      }
+                                      const r = new FileReader();
+                                      r.onloadend = () => setImage(r.result);
+                                      r.readAsDataURL(f);
+                                  }
+                              }} />
+                          </label>
+                          <button
+                              onClick={submitPost}
+                              disabled={!text.trim() && !image}
+                              className="bg-emerald-600 text-white px-5 py-2 rounded-full text-[12px] font-black disabled:opacity-50 hover:bg-emerald-700 transition-colors shadow-md active:scale-95"
+                          >
+                              게시하기
+                          </button>
+                      </div>
+                  </div>
+              </div>
+
+              {/* 피드 목록 */}
+              <div className="bg-white border border-gray-200 shadow-sm rounded-xl overflow-hidden divide-y divide-gray-100">
+                  {sortedPosts.map(post => {
+                      const author = publicUsers.find(u => u.uid === post.authorId);
+                      const comments = post.comments || [];
+                      const isExpanded = expandedComments[post.id];
+
+                      return (
+                          <div key={post.id} className="p-5 flex gap-4 hover:bg-gray-50/40 transition-colors">
+                              <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden flex-shrink-0 border border-gray-100 shadow-sm">
+                                  {author?.profileImage ? <img src={author.profileImage} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center font-bold text-gray-500">{author?.name?.charAt(0) || '?'}</div>}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                  <div className="flex items-baseline gap-2 mb-1.5">
+                                      <span className="font-black text-[14px] text-gray-900">{author?.name || '알 수 없음'}</span>
+                                      <span className="text-[11px] font-bold text-gray-400">{new Date(post.timestamp).toLocaleString()}</span>
+                                  </div>
+                                  <p className="text-[13.5px] text-gray-800 font-medium whitespace-pre-wrap leading-relaxed mb-3">{post.text}</p>
+                                  {post.imageUrl && (
+                                      <div className="mb-4">
+                                          <img src={post.imageUrl} className="max-h-96 w-auto rounded-xl border border-gray-200 object-cover shadow-sm" />
+                                      </div>
+                                  )}
+                                  <div className="flex items-center gap-6 text-gray-400">
+                                      <button onClick={() => setExpandedComments({...expandedComments, [post.id]: !isExpanded})} className="flex items-center gap-1.5 hover:text-emerald-600 transition-colors group">
+                                          <div className="p-1.5 rounded-full group-hover:bg-emerald-50 text-gray-400 group-hover:text-emerald-500"><MessageCircle size={16} /></div>
+                                          <span className="text-[12px] font-bold">{comments.length}</span>
+                                      </button>
+                                  </div>
+
+                                  {/* 댓글 영역 */}
+                                  {isExpanded && (
+                                      <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">
+                                          {comments.map(c => {
+                                              const cAuthor = publicUsers.find(u => u.uid === c.authorId);
+                                              return (
+                                                  <div key={c.id} className="flex gap-3">
+                                                      <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden flex-shrink-0 shadow-sm">
+                                                          {cAuthor?.profileImage ? <img src={cAuthor.profileImage} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center font-bold text-gray-500 text-[10px]">{cAuthor?.name?.charAt(0) || '?'}</div>}
+                                                      </div>
+                                                      <div className="flex-1 bg-gray-50/80 border border-gray-100 p-3 rounded-xl rounded-tl-none">
+                                                          <div className="flex items-baseline gap-2 mb-1">
+                                                              <span className="font-black text-[12px] text-gray-900">{cAuthor?.name || '알 수 없음'}</span>
+                                                              <span className="text-[9px] font-bold text-gray-400">{new Date(c.timestamp).toLocaleString()}</span>
+                                                          </div>
+                                                          <p className="text-[12px] text-gray-700 font-medium leading-relaxed">{c.text}</p>
+                                                      </div>
+                                                  </div>
+                                              )
+                                          })}
+                                          <div className="flex items-center gap-2 mt-3 relative">
+                                              <input
+                                                  type="text"
+                                                  placeholder="답글 게시하기"
+                                                  className="flex-1 bg-gray-50 border border-gray-200 rounded-full pl-4 pr-10 py-2 text-[12px] font-bold outline-none focus:border-emerald-500 focus:bg-white transition-colors shadow-inner"
+                                                  value={commentInputs[post.id] || ''}
+                                                  onChange={e => setCommentInputs({...commentInputs, [post.id]: e.target.value})}
+                                                  onKeyDown={e => {
+                                                      if(e.key === 'Enter') {
+                                                          handleAddComment(post.id, commentInputs[post.id]);
+                                                          setCommentInputs({...commentInputs, [post.id]: ''});
+                                                      }
+                                                  }}
+                                              />
+                                              <button
+                                                  onClick={() => {
+                                                      handleAddComment(post.id, commentInputs[post.id]);
+                                                      setCommentInputs({...commentInputs, [post.id]: ''});
+                                                  }}
+                                                  disabled={!(commentInputs[post.id] || '').trim()}
+                                                  className="absolute right-1 top-1 bottom-1 bg-emerald-600 text-white w-7 rounded-full flex items-center justify-center hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-sm"
+                                              >
+                                                  <Send size={12} className="-ml-0.5" />
+                                              </button>
+                                          </div>
+                                      </div>
+                                  )}
+                              </div>
+                          </div>
+                      );
+                  })}
+                  {sortedPosts.length === 0 && (
+                      <div className="p-16 flex flex-col items-center justify-center text-gray-400 bg-gray-50/50">
+                          <div className="w-16 h-16 bg-white rounded-full border border-gray-100 shadow-sm flex items-center justify-center mb-4"><MessageCircle size={28} className="text-gray-300"/></div>
+                          <p className="text-[13px] font-black uppercase tracking-widest">게시글이 없습니다. 첫 글을 작성해보세요!</p>
+                      </div>
+                  )}
+              </div>
+          </div>
+      );
+    };
 
     const MessengerView = ({ user, publicUsers, myChats, allMessages, activeChatId, setActiveChatId, chatInputEmail, setChatInputEmail, handleCreateChat, chatMessageInput, setChatMessageInput, handleSendMessage, handleDeleteMessage }) => {
       const activeChat = myChats.find(c => c.id === activeChatId);
@@ -1136,7 +1355,6 @@
       
       const chatMessages = allMessages.filter(m => m.roomId === activeChatId).sort((a,b) => a.timestamp - b.timestamp);
       
-      // 자동 스크롤 버그 수정: 특정 컨테이너 내부만 스크롤 되도록 변경 (scrollIntoView 대체)
       const chatContainerRef = useRef(null);
 
       useEffect(() => {
@@ -1332,180 +1550,6 @@
         </div>
       );
     };
-
-    const LiveStadiumView = ({ setCurrentPage }) => {
-      const videos = [
-        { id: 1, url: "https://i.ibb.co/237hrV73/1774956407068.jpg", title: "도전자vs소우 FULL LIVE", time: "LIVE", views: "1.2만명 시청 중" },
-        { id: 2, url: "https://i.ibb.co/NgYrq693/1774956407275.jpg", title: "vs마론 하이라이트", time: "종료" }
-      ];
-
-      return (
-        <div className="animate-in fade-in duration-500 space-y-6 text-left font-sans">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-               <h3 className="text-xl font-black text-emerald-950 uppercase tracking-tight">라이브 스타디움</h3>
-               <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5 tracking-widest">Live Stadium Gallery</p>
-            </div>
-            <button onClick={() => setCurrentPage('home')} className="text-xs font-bold text-gray-400 hover:text-emerald-600 flex items-center gap-1"><ChevronLeft size={14}/> 홈으로</button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {videos.map(v => (
-              <div key={v.id} className="flex flex-col group cursor-pointer">
-                <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden bg-gray-100 mb-3 shadow-sm border border-gray-200">
-                  <img src={v.url} alt={v.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-300"></div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-14 h-14 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-red-600 shadow-lg transform group-hover:scale-110 transition-transform duration-300">
-                       <PlayCircle size={32} className="text-red-600" />
-                    </div>
-                  </div>
-                  <div className="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-widest flex items-center gap-1.5 shadow-sm">
-                    <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> {v.time}
-                  </div>
-                </div>
-                <h4 className="font-black text-[14px] text-gray-900 group-hover:text-emerald-600 transition-colors line-clamp-2">{v.title}</h4>
-                <p className="text-[11px] text-gray-500 font-bold mt-1">{v.views}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    };
-
-    const TasksView = ({ tasks, taskFilter, setTaskFilter, openTaskModal }) => {
-      const filteredTasks = tasks.filter(t => taskFilter === '전체' || (t.types && t.types.includes(taskFilter)));
-      return (
-        <div className="animate-in fade-in duration-500 space-y-6 text-left font-sans font-bold">
-          <div className="flex justify-between items-end mb-6">
-            <div><h3 className="text-xl font-black text-emerald-950 uppercase tracking-tight">업무 관리 센터</h3><p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5 tracking-widest">Task Management Dashboard</p></div>
-            <button onClick={() => openTaskModal('add')} className="px-6 py-3 bg-emerald-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg flex items-center gap-2 hover:bg-emerald-700 transition-all active:scale-95"><Plus size={16}/> New Task</button>
-          </div>
-          <div className="flex gap-2 mb-6">
-            {['전체', '내 업무', '부서 업무'].map(f => (
-              <button key={f} onClick={() => setTaskFilter(f)} className={`px-5 py-2 text-[10px] font-black uppercase rounded-full transition-all ${taskFilter === f ? 'bg-gray-800 text-white shadow-md' : 'bg-white text-gray-400 border border-gray-100 hover:bg-gray-50'}`}>{f}</button>
-            ))}
-          </div>
-          <div className="bg-white border border-gray-200 shadow-sm rounded-xl overflow-hidden font-bold">
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-gray-50 border-b border-gray-100"><tr className="text-[9px] font-black text-gray-400 uppercase tracking-widest"><th className="px-6 py-4">Status</th><th className="px-6 py-4">Task Name</th><th className="px-6 py-4">Priority</th><th className="px-6 py-4 text-right">Actions</th></tr></thead>
-              <tbody className="divide-y divide-gray-50 font-bold">
-                {filteredTasks.map(task => (
-                  <tr key={task.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4"><span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${task.status === '완료' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-indigo-100 text-indigo-700 border-indigo-200'} uppercase`}>{task.status}</span></td>
-                    <td className="px-6 py-4 font-black text-[12px] text-gray-800 truncate max-w-xs">{task.department && <span className="text-emerald-600 mr-1">[{task.department}]</span>}{task.title}</td>
-                    <td className="px-6 py-4"><span className={`text-[10px] font-black ${task.priority === '긴급' ? 'text-red-500' : 'text-gray-400'}`}>{task.priority || '보통'}</span></td>
-                    <td className="px-6 py-4 text-right"><button onClick={() => openTaskModal('edit', task)} className="p-2 text-gray-300 hover:text-emerald-500 transition-colors"><MoreVertical size={16}/></button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      );
-    };
-
-    const ProfileView = ({ userProfile, setIsProfileModalOpen, userApplications, leagueEntry }) => (
-      <div className="animate-in fade-in duration-500 space-y-6 text-left font-sans font-bold">
-         <div className="flex justify-between items-end mb-6">
-            <div><h3 className="text-xl font-black text-emerald-950 uppercase tracking-tight">인사 프로필</h3><p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5 tracking-widest">Employee Personal Record</p></div>
-            <button onClick={() => setIsProfileModalOpen(true)} className="px-6 py-3 bg-gray-800 text-white text-[11px] font-black uppercase tracking-widest shadow-lg flex items-center gap-2 hover:bg-black active:scale-95 transition-all"><User size={16}/> Edit Profile</button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 font-bold">
-            <div className="md:col-span-4 bg-white border border-gray-200 shadow-sm rounded-xl p-8 flex flex-col items-center">
-               <div className="w-32 h-32 bg-emerald-500 rounded-2xl flex items-center justify-center text-white text-4xl font-black shadow-xl overflow-hidden mb-6 border-4 border-white">
-                 {userProfile.profileImage ? <img src={userProfile.profileImage} className="w-full h-full object-cover" /> : userProfile.name.charAt(0)}
-               </div>
-               <h4 className="text-xl font-black text-gray-900">{userProfile.name}</h4>
-               <div className="mt-4 px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">{userProfile.dept} • {userProfile.position}</div>
-               <div className="mt-8 pt-8 border-t border-gray-50 w-full flex flex-col items-center">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">대표 파트너 포켓몬</p>
-                  <div className="w-24 h-24 bg-gray-50 rounded-xl border border-dashed border-gray-200 flex items-center justify-center overflow-hidden mb-3">
-                     {leagueEntry[0]?.image ? <img src={leagueEntry[0].image} className="w-full h-full object-contain p-2" /> : <div className="text-gray-300 text-[10px] font-bold text-center p-4">데이터 없음</div>}
-                  </div>
-                  {/* 레벨 표시 추가 */}
-                  <p className="text-[12px] font-black text-gray-800 uppercase tracking-tighter">
-                    {leagueEntry[0]?.name || "No Partner"} 
-                    {leagueEntry[0]?.name && <span className="ml-1 text-emerald-600">Lv.{leagueEntry[0]?.level}</span>}
-                  </p>
-               </div>
-            </div>
-            <div className="md:col-span-8 bg-white border border-gray-200 shadow-sm rounded-xl overflow-hidden font-bold">
-               <div className="px-8 py-6 border-b border-gray-50 flex items-center gap-2"><ShieldCheck size={18} className="text-emerald-500" /><h4 className="font-black text-gray-800 text-xs uppercase tracking-widest">상세 근무 정보</h4></div>
-               <div className="grid grid-cols-1 sm:grid-cols-2 border-b border-gray-50 font-bold">
-                  {/* 변경된 상세 정보 항목 */}
-                  <TableItem label="영문명" value={userProfile.englishName || '-'} />
-                  <TableItem label="재직 상태" value={userProfile.status || '-'} />
-                  <TableItem label="생년월일" value={userProfile.birthDate || '-'} />
-                  <TableItem label="근무 위치" value={userProfile.location || '-'} />
-                  <TableItem label="이메일" value={userProfile.email || '-'} />
-                  <TableItem label="비상연락망" value={userProfile.emergencyContact || '-'} />
-               </div>
-               <div className="p-8 bg-gray-50/30">
-                  <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Clock size={12}/> 최근 신청 상태 요약</h5>
-                  <div className="space-y-3 font-bold">
-                     {userApplications.slice(0, 3).map(app => (
-                        <div key={app.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg shadow-sm font-bold">
-                           <div className="flex items-center gap-3">
-                              <div className="p-1.5 bg-gray-50 rounded-md"><FileText size={14} className="text-emerald-500" /></div>
-                              <div><p className="text-[11px] font-black text-gray-800">{app.title}</p><p className="text-[9px] text-gray-400">{app.category} • {app.date}</p></div>
-                           </div>
-                           <span className={`text-[9px] font-black ${app.status === '완료' ? 'text-emerald-600' : 'text-indigo-600'}`}>{app.status}</span>
-                        </div>
-                     ))}
-                  </div>
-               </div>
-            </div>
-          </div>
-      </div>
-    );
-
-    const NoticeDetailView = ({ notice, setCurrentPage }) => {
-      if (!notice) return null;
-      return (
-        <div className="bg-white border border-gray-200 shadow-sm rounded-xl overflow-hidden animate-in fade-in duration-500 text-left font-sans font-bold">
-          <div className="p-8 border-b border-gray-100">
-            <button onClick={() => setCurrentPage('notices')} className="flex items-center gap-1 text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-6">
-              <ChevronLeft size={14} /> 목록으로 돌아가기
-            </button>
-            <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-none border border-emerald-100 uppercase tracking-widest mb-3 inline-block">{notice.category}</span>
-            <h2 className="text-2xl font-black text-gray-900 leading-tight mb-6">{notice.title}</h2>
-            <div className="flex items-center gap-4 text-[11px] font-bold text-gray-400 uppercase tracking-tighter pt-4 border-t border-gray-50">
-              <div className="flex items-center gap-2"><User size={12} className="text-emerald-500" /> {notice.author}</div>
-              <div className="flex items-center gap-2"><CalendarIcon size={12} className="text-emerald-500" /> {notice.date}</div>
-            </div>
-          </div>
-          <div className="p-8 md:p-12 text-sm font-medium leading-relaxed text-gray-600 whitespace-pre-line min-h-[300px] bg-gray-50/20 font-bold">
-            {notice.content}
-          </div>
-          <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex justify-end">
-            <button onClick={() => setCurrentPage('notices')} className="px-10 py-3 bg-gray-800 text-white text-[11px] font-black rounded-none shadow-md uppercase tracking-widest">목록</button>
-          </div>
-        </div>
-      );
-    };
-
-    const CertView = ({ userProfile, setCurrentPage }) => (
-      <div className="animate-in fade-in duration-500 space-y-6 text-left font-sans font-bold">
-        <div className="flex justify-between items-center mb-4"><h3 className="text-xl font-black text-gray-800 uppercase tracking-tight">재직증명서 발급</h3><button onClick={() => setCurrentPage('home')} className="text-xs font-bold text-gray-400 flex items-center gap-1"><ChevronLeft size={14}/> 홈으로</button></div>
-        <div className="bg-white border border-gray-200 shadow-xl rounded-xl overflow-hidden p-6 md:p-10 lg:p-20 font-serif">
-          <div className="max-w-[700px] mx-auto border-[10px] border-double border-black p-12 text-gray-900 bg-white">
-            <h1 className="text-4xl font-bold text-center mb-20 tracking-[1.5rem] underline underline-offset-[12px] decoration-1">재직증명서</h1>
-            <div className="space-y-0 border-t border-l border-black mb-24 text-sm md:text-base font-bold">
-              {[ ["성       명", userProfile.name], ["직       위", userProfile.position], ["소       속", userProfile.dept], ["재 직 기 간", `${userProfile.joinDate} ~ 현재`] ].map(([label, value], idx) => (
-                <div key={idx} className="flex border-b border-r border-black h-14 items-center">
-                  <div className="w-40 bg-gray-50 h-full flex items-center justify-center border-r border-black font-bold uppercase">{label}</div>
-                  <div className="flex-1 px-8 font-medium">{value}</div>
-                </div>
-              ))}
-            </div>
-            <div className="text-center space-y-16 mb-16 font-bold"><p className="text-xl font-medium leading-relaxed font-bold">상기인은 석영고원 포켓몬리그 본부의 규정에 의거하여 위와 같이 재직하고 있음을 증명함.</p></div>
-            <div className="text-center border-t border-black/5 pt-10 font-bold"><h2 className="text-3xl font-bold tracking-tight">석영고원 포켓몬리그 본부 총재</h2></div>
-          </div>
-          <div className="mt-12 flex justify-center gap-4 font-sans"><button onClick={() => window.print()} className="px-10 py-4 bg-gray-800 text-white font-black text-sm rounded-xl flex items-center gap-2 active:scale-95 shadow-lg"><Printer size={18} /> 인쇄하기</button></div>
-        </div>
-      </div>
-    );
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
