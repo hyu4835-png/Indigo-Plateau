@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>석영고원 리그 본부 시스템</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Firebase SDK Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // -- Firebase Configuration --
+        const firebaseConfig = {
+            apiKey: "AIzaSyAwpv9czFEC6DL3CcgiHeRU2hKDVsRNhvE",
+            authDomain: "indigo-plateau-ecf0c.firebaseapp.com",
+            projectId: "indigo-plateau-ecf0c",
+            storageBucket: "indigo-plateau-ecf0c.firebasestorage.app",
+            messagingSenderId: "58110632663",
+            appId: "1:58110632663:web:b3f3597974f7a3984c8692"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = "indigo-plateau-official-system";
+
+        // -- Global State --
+        let state = {
+            user: null,
+            isAuthInitialized: false,
+            currentPage: 'home',
+            isSidebarOpen: false,
+            isServiceMenuOpen: false,
+            userProfile: {
+                name: '신입 사원', EnglishName: 'New Recruit', dept: '미지정', position: '인턴',
+                location: '석영고원 본부 1층', staffId: '', joinDate: new Date().toISOString().split('T')[0],
+                email: '', phone: '', status: '재직(수습)', profileImage: null
+            },
+            tasks: [],
+            userApplications: [],
+            leagueEntry: Array(6).fill(0).map((_, i) => ({
+                id: i, name: '', level: 50, type1: '선택', type2: '없음', ability: '', item: '', moves: ['', '', '', ''], image: null
+            })),
+            pkmnList: [],
+            notificationCount: 0,
+            notices: [
+                { id: 1, category: '행사', author: '운영본부', title: '제98회 석영리그 챔피언십 본선 일정 안내', date: '2024-05-20', content: '제98회 챔피언십 본선 일정이 확정되었습니다.' },
+                { id: 2, category: '기술', author: '안전관리팀', title: '[중요] 경기장 내 야생 포켓몬 출몰 주의보', date: '2024-05-18', content: '최근 경기장 외곽 제3구역에서 야생 뿔카노 무리가 자주 출몰하고 있습니다.' },
+                { id: 3, category: '인사', author: '인사지원팀', title: '2분기 복지 포인트 지급 완료 안내', date: '2024-05-15', content: '금일 2분기 복지 포인트 지급이 완료되었습니다.' }
+            ],
+            selectedNotice: null,
+            taskFilter: '전체'
+        };
+
+        const TYPE_COLORS = {
+            '선택': '#10b981', '노말': '#A8A77A', '격투': '#C22E28', '비행': '#A98FF3', '독': '#A33EA1',
+            '땅': '#E2BF65', '바위': '#B6A136', '벌레': '#A6B91A', '고스트': '#735797', '강철': '#B7B7CE',
+            '불꽃': '#EE8130', '물': '#6390F0', '풀': '#7AC74C', '전기': '#F7D02C', '에스퍼': '#F95587',
+            '얼음': '#96D9D6', '드래곤': '#6F35FC', '악': '#705746', '페어리': '#D685AD', '없음': '#CBD5E1'
+        };
+
+        // -- Data Handling --
+        async function saveUserData(updates = {}) {
+            if (!state.user) return;
+            const dataDoc = doc(db, 'artifacts', appId, 'users', state.user.uid, 'data', 'state');
+            try {
+                const currentData = { 
+                    userProfile: state.userProfile, 
+                    tasks: state.tasks, 
+                    userApplications: state.userApplications, 
+                    leagueEntry: state.leagueEntry, 
+                    pkmnList: state.pkmnList 
+                };
+                await setDoc(dataDoc, { ...currentData, ...updates }, { merge: true });
+            } catch (e) { console.error("Save error:", e); }
+        }
+
+        // -- Auth Listener --
+        onAuthStateChanged(auth, (u) => {
+            if (u && !u.isAnonymous) {
+                state.user = u;
+                // Fetch Data Snapshot
+                const dataDoc = doc(db, 'artifacts', appId, 'users', u.uid, 'data', 'state');
+                onSnapshot(dataDoc, (snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.data();
+                        Object.assign(state, data);
+                        render();
+                    }
+                });
+            } else {
+                state.user = null;
+                // Reset State
+                state.userProfile = { name: '신입 사원', EnglishName: 'New Recruit', dept: '미지정', position: '인턴', location: '석영고원 본부 1층', staffId: '', joinDate: new Date().toISOString().split('T')[0], email: '', phone: '', status: '재직(수습)', profileImage: null };
+                state.tasks = [];
+                state.userApplications = [];
+                state.leagueEntry = Array(6).fill(0).map((_, i) => ({ id: i, name: '', level: 50, type1: '선택', type2: '없음', ability: '', item: '', moves: ['', '', '', ''], image: null }));
+                state.pkmnList = [];
+                state.currentPage = 'home';
+            }
+            state.isAuthInitialized = true;
+            render();
+        });
+
+        // -- Navigation & UI Actions --
+        window.navigate = (page) => {
+            state.currentPage = page;
+            state.isSidebarOpen = false;
+            render();
+        };
+
+        window.toggleSidebar = () => {
+            state.isSidebarOpen = !state.isSidebarOpen;
+            render();
+        };
+
+        window.handleLogout = async () => {
+            await signOut(auth);
+        };
+
+        window.handleAuth = async (event) => {
+            event.preventDefault();
+            const email = event.target.email.value;
+            const password = event.target.password.value;
+            const isSignUp = event.target.dataset.mode === 'signup';
+            
+            try {
+                if (isSignUp) {
+                    const cred = await createUserWithEmailAndPassword(auth, email, password);
+                    const initialData = {
+                        userProfile: { ...state.userProfile, email, staffId: `#${email.split('@')[0]}` },
+                        tasks: [{ id: Date.now(), title: '본부 시스템 가이드 숙지', status: '진행중', priority: '보통' }]
+                    };
+                    await setDoc(doc(db, 'artifacts', appId, 'users', cred.user.uid, 'data', 'state'), initialData);
+                } else {
+                    await signInWithEmailAndPassword(auth, email, password);
+                }
+            } catch (e) {
+                alert("인증 오류: " + e.message);
+            }
+        };
+
+        // -- Rendering Engine --
+        function render() {
+            const root = document.getElementById('app');
+            if (!state.isAuthInitialized) {
+                root.innerHTML = `<div class="min-h-screen flex items-center justify-center bg-emerald-50"><div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div></div>`;
+                return;
+            }
+
+            if (!state.user) {
+                renderAuth(root);
+            } else {
+                renderMain(root);
+            }
+            lucide.createIcons();
+        }
+
+        function renderAuth(container) {
+            const isSignUpMode = document.getElementById('auth-form')?.dataset.mode === 'signup';
+            container.innerHTML = `
+                <div class="min-h-screen flex items-center justify-center bg-emerald-50/50 p-4 font-sans">
+                    <div class="bg-white p-12 shadow-2xl w-full max-w-sm text-center border border-emerald-100">
+                        <div class="w-20 h-20 bg-emerald-500 flex items-center justify-center mx-auto mb-8 text-white shadow-xl rotate-3"><i data-lucide="layout-dashboard" size="40"></i></div>
+                        <h1 class="text-2xl font-black text-emerald-950 uppercase tracking-tighter">석영고원 리그 본부</h1>
+                        <p class="text-emerald-600 mt-1 text-[11px] font-black uppercase tracking-[0.2em] mb-8">Official Auth System</p>
+                        <div class="mb-6 flex bg-gray-100 p-1 rounded-lg font-black">
+                            <button onclick="setAuthMode('login')" class="flex-1 py-2 text-[10px] uppercase rounded-md ${!isSignUpMode ? 'bg-white shadow-sm text-emerald-600' : 'text-gray-400'}">Login</button>
+                            <button onclick="setAuthMode('signup')" class="flex-1 py-2 text-[10px] uppercase rounded-md ${isSignUpMode ? 'bg-white shadow-sm text-emerald-600' : 'text-gray-400'}">Sign Up</button>
+                        </div>
+                        <form id="auth-form" data-mode="${isSignUpMode ? 'signup' : 'login'}" onsubmit="handleAuth(event)" class="space-y-3">
+                            <input name="email" type="email" placeholder="Staff Email" required class="w-full px-6 py-4 text-sm bg-gray-50 border-none outline-none font-bold shadow-inner">
+                            <input name="password" type="password" placeholder="Password" required class="w-full px-6 py-4 text-sm bg-gray-50 border-none outline-none font-bold shadow-inner">
+                            <button type="submit" class="w-full bg-emerald-600 text-white font-black py-5 shadow-lg mt-4 uppercase text-[12px] active:scale-95 transition-all">
+                                ${isSignUpMode ? 'Create Account' : 'Sign In'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.setAuthMode = (mode) => {
+            const form = document.getElementById('auth-form');
+            if (form) form.dataset.mode = mode;
+            render();
+        };
+
+        function renderMain(container) {
+            container.innerHTML = `
+                <div class="min-h-screen bg-[#f9fafb] flex flex-col font-sans text-sm antialiased text-gray-800">
+                    <!-- Header -->
+                    <header class="h-16 bg-white/70 backdrop-blur-md border-b border-gray-100 px-8 flex items-center justify-between sticky top-0 z-30">
+                        <button onclick="toggleSidebar()" class="p-2 text-emerald-600"><i data-lucide="menu"></i></button>
+                        <div class="flex items-center gap-5">
+                            <button class="relative p-2 text-gray-400"><i data-lucide="bell"></i></button>
+                            <button onclick="navigate('profile')" class="w-9 h-9 rounded-full border-2 border-emerald-500 p-0.5 overflow-hidden shadow-sm">
+                                ${state.userProfile.profileImage ? `<img src="${state.userProfile.profileImage}" class="w-full h-full object-cover rounded-full">` : `<div class="w-full h-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold rounded-full">${state.userProfile.name.charAt(0)}</div>`}
+                            </button>
+                        </div>
+                    </header>
+
+                    <!-- Sidebar -->
+                    <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-[40] ${state.isSidebarOpen ? '' : 'hidden'}" onclick="toggleSidebar()"></div>
+                    <aside class="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-100 z-[50] transform transition-transform duration-300 ${state.isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col">
+                        <div class="p-6 flex items-center justify-between border-b border-gray-50">
+                            <div class="flex items-center gap-3"><div class="w-8 h-8 bg-emerald-500 text-white flex items-center justify-center"><i data-lucide="layout-dashboard" size="18"></i></div><span class="font-black text-emerald-900 text-sm uppercase">석영고원 HQ</span></div>
+                            <button onclick="toggleSidebar()" class="text-gray-400"><i data-lucide="x"></i></button>
+                        </div>
+                        <nav class="flex-1 p-4 space-y-2">
+                            <button onclick="navigate('home')" class="flex items-center gap-3 px-4 py-3 w-full rounded-none ${state.currentPage === 'home' ? 'bg-emerald-500 text-white shadow-md' : 'text-gray-500'} font-bold text-xs"><i data-lucide="layout-dashboard" size="18"></i> 홈 화면</button>
+                            <button onclick="navigate('tasks')" class="flex items-center gap-3 px-4 py-3 w-full rounded-none ${state.currentPage === 'tasks' ? 'bg-emerald-500 text-white shadow-md' : 'text-gray-500'} font-bold text-xs"><i data-lucide="clipboard-list" size="18"></i> 업무 관리</button>
+                            <button onclick="navigate('entry')" class="flex items-center gap-3 px-4 py-3 w-full text-gray-500 font-bold text-xs"><i data-lucide="trophy" size="18"></i> 리그 엔트리</button>
+                            <button onclick="navigate('center')" class="flex items-center gap-3 px-4 py-3 w-full text-gray-500 font-bold text-xs"><i data-lucide="stethoscope" size="18"></i> 포켓몬 센터</button>
+                        </nav>
+                        <div class="p-4 border-t border-gray-50 bg-gray-50/50">
+                            <div class="flex items-center gap-3 p-2">
+                                <div class="w-8 h-8 bg-white border border-emerald-100 rounded-full overflow-hidden">
+                                    ${state.userProfile.profileImage ? `<img src="${state.userProfile.profileImage}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xs">${state.userProfile.name.charAt(0)}</div>`}
+                                </div>
+                                <div class="flex-1 truncate"><p class="font-black text-[11px] text-gray-800">${state.userProfile.name}</p><p class="text-[9px] text-gray-400 uppercase">${state.userProfile.dept}</p></div>
+                            </div>
+                            <button onclick="handleLogout()" class="flex items-center gap-3 px-3 py-2 w-full text-red-500 text-[10px] font-black uppercase mt-2"><i data-lucide="log-out" size="14"></i> Logout</button>
+                        </div>
+                    </aside>
+
+                    <!-- Main Content Area -->
+                    <main class="p-8 max-w-6xl mx-auto w-full flex-1">
+                        ${renderCurrentPage()}
+                    </main>
+
+                    <!-- Footer -->
+                    <footer class="bg-white border-t border-gray-100 py-12 px-8 mt-10">
+                        <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10">
+                            <div class="space-y-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-emerald-500 flex items-center justify-center text-white"><i data-lucide="layout-dashboard" size="18"></i></div>
+                                    <span class="font-black text-emerald-900 text-sm uppercase">석영고원 리그 본부</span>
+                                </div>
+                                <p class="text-[11px] text-gray-400 font-bold leading-relaxed">
+                                    INDIGO PLATEAU POKEMON LEAGUE HQ<br />
+                                    관동 및 성도 지방 통합 배틀 관리 기구
+                                </p>
+                            </div>
+                            <div class="space-y-4 font-bold text-[11px] text-gray-500">
+                                <h4 class="text-[10px] font-black text-gray-800 uppercase tracking-widest">Contact Info</h4>
+                                <p><i data-lucide="map-pin" size="12" class="inline text-emerald-500"></i> 석영고원 리그 본부 메인 타워</p>
+                                <p><i data-lucide="phone" size="12" class="inline text-emerald-500"></i> +82-2-INDIGO-98</p>
+                            </div>
+                            <div class="space-y-4 font-bold text-[11px] text-gray-500">
+                                <h4 class="text-[10px] font-black text-gray-800 uppercase tracking-widest">Legal</h4>
+                                <p class="cursor-pointer hover:text-emerald-600">개인정보 처리방침</p>
+                                <p class="cursor-pointer hover:text-emerald-600">리그 규정 및 배틀 규칙</p>
+                            </div>
+                        </div>
+                        <div class="max-w-6xl mx-auto mt-10 pt-8 border-t border-gray-50 text-[9px] font-black text-gray-300 uppercase">
+                            © 2024 INDIGO PLATEAU HQ. ALL RIGHTS RESERVED.
+                        </div>
+                    </footer>
+                </div>
+            `;
+        }
+
+        function renderCurrentPage() {
+            switch(state.currentPage) {
+                case 'home': return renderHome();
+                case 'profile': return renderProfile();
+                case 'tasks': return renderTasks();
+                case 'entry': return renderEntry();
+                case 'center': return renderCenter();
+                default: return renderHome();
+            }
+        }
+
+        function renderHome() {
+            return `
+                <div class="animate-in fade-in duration-500 space-y-5 pb-10">
+                    <div class="flex items-center justify-between bg-white border border-emerald-100 p-6 shadow-sm">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600"><i data-lucide="zap" size="24"></i></div>
+                            <div>
+                                <h2 class="text-lg font-black text-gray-900">환영합니다, ${state.userProfile.position} ${state.userProfile.name}님</h2>
+                                <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Welcome to Indigo Plateau Management System</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-12 gap-5">
+                        <section class="col-span-12 md:col-span-8 bg-white border border-gray-100 shadow-sm p-6">
+                            <h3 class="font-black text-[13px] text-gray-800 uppercase tracking-tighter mb-5">자주 찾는 서비스</h3>
+                            <div class="grid grid-cols-3 md:grid-cols-5 gap-3">
+                                <button onclick="navigate('entry')" class="flex flex-col items-center p-3 bg-gray-50/20 border border-transparent hover:border-emerald-100"><i data-lucide="trophy" class="text-amber-500 mb-2"></i><span class="text-[10px] font-black">엔트리 등록</span></button>
+                                <button onclick="navigate('center')" class="flex flex-col items-center p-3 bg-gray-50/20 border border-transparent hover:border-emerald-100"><i data-lucide="stethoscope" class="text-red-500 mb-2"></i><span class="text-[10px] font-black">포켓몬 센터</span></button>
+                            </div>
+                        </section>
+                        <section class="col-span-12 md:col-span-4 bg-white border border-emerald-100 shadow-sm p-6 text-center">
+                            <div class="w-16 h-16 bg-emerald-500 mx-auto rounded-none flex items-center justify-center text-white text-2xl font-bold shadow-md mb-3 border-2 border-white">
+                                ${state.userProfile.profileImage ? `<img src="${state.userProfile.profileImage}" class="w-full h-full object-cover">` : state.userProfile.name.charAt(0)}
+                            </div>
+                            <h4 class="font-black text-gray-800 text-[13px]">${state.userProfile.name}</h4>
+                            <div class="mt-1 text-[10px] font-black uppercase text-emerald-600">${state.userProfile.dept}</div>
+                            <button onclick="navigate('profile')" class="w-full py-2 bg-emerald-50 text-emerald-600 rounded-none text-[10px] font-black uppercase mt-4">Edit Profile</button>
+                        </section>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderProfile() {
+            return `
+                <div class="space-y-6 text-left">
+                    <div class="flex justify-between items-end">
+                        <h3 class="text-xl font-black text-emerald-950 uppercase tracking-tight">인사 프로필</h3>
+                        <button onclick="editProfile()" class="px-6 py-3 bg-gray-800 text-white text-[11px] font-black uppercase tracking-widest"><i data-lucide="user" size="16" class="inline"></i> Edit Profile</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                        <div class="md:col-span-4 bg-white border border-gray-200 shadow-sm p-8 flex flex-col items-center">
+                            <div class="w-32 h-32 bg-emerald-500 rounded-2xl flex items-center justify-center text-white text-4xl font-black shadow-xl overflow-hidden mb-6 border-4 border-white">
+                                ${state.userProfile.profileImage ? `<img src="${state.userProfile.profileImage}" class="w-full h-full object-cover">` : state.userProfile.name.charAt(0)}
+                            </div>
+                            <h4 class="text-xl font-black text-gray-900">${state.userProfile.name}</h4>
+                            <div class="mt-8 pt-8 border-t border-gray-50 w-full flex flex-col items-center">
+                                <p class="text-[10px] font-black text-gray-400 uppercase mb-4">대표 파트너 포켓몬</p>
+                                <p class="text-[12px] font-black text-gray-800 uppercase">
+                                    ${state.leagueEntry[0].name || "No Partner"} 
+                                    ${state.leagueEntry[0].name ? `<span class="ml-1 text-emerald-600">Lv.${state.leagueEntry[0].level}</span>` : ''}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="md:col-span-8 bg-white border border-gray-200 shadow-sm overflow-hidden">
+                            <div class="px-8 py-6 border-b border-gray-50 flex items-center gap-2 font-black text-xs uppercase tracking-widest text-gray-800"><i data-lucide="shield-check" class="text-emerald-500"></i> 상세 근무 정보</div>
+                            <div class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="text-[11px] font-bold text-gray-500">사원 식별자: <span class="text-gray-900">${state.userProfile.staffId}</span></div>
+                                <div class="text-[11px] font-bold text-gray-500">입사 일자: <span class="text-gray-900">${state.userProfile.joinDate}</span></div>
+                                <div class="text-[11px] font-bold text-gray-500">직위: <span class="text-gray-900">${state.userProfile.position}</span></div>
+                                <div class="text-[11px] font-bold text-gray-500">이메일: <span class="text-gray-900">${state.userProfile.email}</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.editProfile = () => {
+            const newName = prompt("이름을 입력하세요", state.userProfile.name);
+            if (newName) {
+                state.userProfile.name = newName;
+                saveUserData({ userProfile: state.userProfile });
+                render();
+            }
+        };
+
+        function renderTasks() { return `<div class="p-10 text-center font-black">업무 관리 시스템 (구현 중)</div>`; }
+        function renderEntry() { return `<div class="p-10 text-center font-black">리그 엔트리 시스템 (구현 중)</div>`; }
+        function renderCenter() { return `<div class="p-10 text-center font-black">포켓몬 센터 예약 (구현 중)</div>`; }
+
+        // Initial render
+        render();
+
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; -webkit-print-color-adjust: exact; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        @media print {
+            header, aside, footer, .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-[#f9fafb]">
+    <div id="app"></div>
+</body>
+</html>
