@@ -787,10 +787,10 @@
                        </div>
                        <div className="flex flex-wrap gap-3 font-bold">
                           {[
-                            { id: 'mega', label: '메가진화', img: 'https://i.namu.wiki/i/I_KVeeqB8WohA0uFA90qaPEsWu4hs8CCPzSejs_aUyMxJEc35dbpgLy5hioC822CLf8EGzC_D_WuiVK8KOSmMQ.webp' },
-                            { id: 'zmove', label: 'Z기술', img: 'https://i.namu.wiki/i/mYQmsdVUMqrhzWudNWC0TpQVhW99WS2BRkCCOe0PvrS0RizEMr2dG620j0q8oZTwymN6G-p_f3-gxB9KjW6zPPdJucBWJqyYItuNXgHmScgKnaEMC_NWWQ7i-qP7FM4orpByTMCwYYhVNBIYTStAZA.webp' },
-                            { id: 'dmax', label: '다이맥스', img: 'https://i.namu.wiki/i/Xk7Z7rABZ4GFn4oz8tXMYA7XMiI-ydo15rNdKd7vabLGfECAyxwZ4mklpku-Zi-YKL8Sg2AAjHP3Ts_rPGcwyTrD4nT2Rf9fPtrSVZxWVExPcbQQ0gsX_tI4GC_mlue7N5Oaw7z_4nTbEOc8ZmhmBA.webp' },
-                            { id: 'tera', label: '테라스탈', img: 'https://i.namu.wiki/i/xJN8YQogE5ysS4lTMTLOVkfX40kIb5Y2s9zB_eaRUZi06tBGSSOKFP2l5GN3y6zu73oaygJwvjpP7CkqVen7NXnrTPjwEoErFsF63XM_Jta1KWgKMXMu8Tv_6_KVnNn-lL1MzG_3nS-JdPqi4tOgAQ.webp' }
+                            { id: 'mega', label: '메가진화', img: 'https://i.namu.wiki/i/J0HGYtBddOh9TU6twA0vFjN1TdBGAbbevPqF6urJ1-OsPJTxjm2PSQ3wd7q46Ao0fMf0i1HXAjU76jf3V5p-kw.webp' },
+                            { id: 'zmove', label: 'Z기술', img: 'https://i.namu.wiki/i/OU18PCiLVf5mK5h97-zNDYx_702ZKuoveD9rzwzVv3KZfNw_4ptSMkClJnLkG5d9uTEF_RF5hNmQryT2JZHQLxqL2r-Tk7R3S67LhLCeXrqXHZFoYWLzTHVmlyo9GA99-EGlYGxqDv1FqdklpExqjQ.webp' },
+                            { id: 'dmax', label: '다이맥스', img: 'https://i.namu.wiki/i/RU3Gf2Vo4HzRGaUGMgO8EnopoZOiYussY8JxVOD6ghm7-8_b6ki1oVA5YTaFMfQ8bsoUS2G6XBAuohJ9VwanNHcOeFmBC47bXX_eFIyV4vlw3Wl1TEjZxt38kbjXTeX4-gNO4AAuBzVs9OBs4yHxzg.webp' },
+                            { id: 'tera', label: '테라스탈', img: 'https://i.namu.wiki/i/PPYChXaRcmcL7pGMrPi3ysJD6ilVsao_22rvpWtAFq60Kwo97COJ9HKFoWx2Om_han53C6cYmePdYXBcTOSFowxJtNkCPuvyC6_ZFl0kZm-fEFTk4GVTbjj9VLrQ4nFclCJOyX0WFBrVR_QqLZ2PcQ.webp' }
                           ].map(g => (
                             <label key={g.id} className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 cursor-pointer group transition-all min-w-[80px] ${battleGimmicks[g.id] ? 'bg-emerald-50 border-emerald-500 shadow-sm' : 'bg-white border-gray-100 hover:border-emerald-200'}`} onClick={(e) => { e.preventDefault(); setBattleGimmicks({...battleGimmicks, [g.id]: !battleGimmicks[g.id]}); }}>
                                <div className="w-10 h-10 flex items-center justify-center relative">
